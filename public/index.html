@@ -3,363 +3,278 @@
 <head>
   <meta charset="UTF-8">
   <title>ByteLab</title>
-  <link rel="stylesheet" href="style.css">
-  <style>
-    /* Theme variables */
-    /* System default: Light variables */
-    :root {
-      --bg:#f7f8fa;
-      --panel:#ffffff;
-      --overlay:#eef1f5;
-      --text:#111418;
-      --muted:#6b7280;
-      --accent:#2563eb;
-      --accent2:#10b981;
-      --accent3:#ef4444;
-      --border:#d6dae1;
-      --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.55);
-    }
-    /* System dark override when no explicit theme is set */
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg:#0b0e0c; --panel:#0f1411; --overlay:#131a16; --text:#c9fdd7; --muted:#6aa97e; --accent:#2bdc77; --accent2:#1db954; --accent3:#7ef29a; --border:#1a211c;
-      }
-    }
-    /* Explicit themes override system */
-    [data-theme="light"] { /* explicit light */
-      --bg:#f7f8fa; --panel:#ffffff; --overlay:#eef1f5; --text:#111418; --muted:#4b5563; --accent:#2563eb; --accent2:#10b981; --accent3:#ef4444; --border:#d6dae1; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.55);
-    }
-    [data-theme="dark"] {
-      --bg:#0b0e0c; --panel:#0f1411; --overlay:#131a16; --text:#c9fdd7; --muted:#9fbfaa; --accent:#2bdc77; --accent2:#1db954; --accent3:#7ef29a; --border:#1a211c; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
-    }
-    [data-theme="matrix"] {
-      --bg:#0b0e0c; --panel:#0f1411; --overlay:#131a16; --text:#e7fff2; --muted:#7ad19a; --accent:#2bdc77; --accent2:#1db954; --accent3:#7ef29a; --border:#1a211c; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
-    }
-    [data-theme="rose"] { /* Rosé Pine */
-      --bg:#191724; --panel:#1f1d2e; --overlay:#26233a; --text:#e0def4; --muted:#a09cb6; --accent:#c4a7e7; --accent2:#9ccfd8; --accent3:#eb6f92; --border:#2a283e; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
-    }
-    [data-theme="dracula"] {
-      --bg:#282a36; --panel:#2f3142; --overlay:#34364a; --text:#f8f8f2; --muted:#9aa3cf; --accent:#bd93f9; --accent2:#50fa7b; --accent3:#ff79c6; --border:#3b3e54; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
-    }
-    /* Improve contrast for labels/buttons in light mode */
-    :root:not([data-theme]), [data-theme="light"] {
-      --muted: #4b5563;
-    }
-    [data-theme="light"] .btn.secondary,
-    :root:not([data-theme]) .btn.secondary { color:#374151; }
-    [data-theme="light"] .toolbar label,
-    :root:not([data-theme]) .toolbar label { color:#374151; }
-    html, body { height:100%; margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
-    .container { display:flex; flex-direction:column; height:100vh; }
-    .editor { flex:1; display:flex; flex-direction:column; gap:8px; padding:0 16px 0; }
-    #editor { flex:1; min-height:200px; max-height:50vh; border:1px solid var(--border); border-radius:8px; }
-    #editor.ace_editor { background: var(--panel); color: var(--text); border-radius:8px; }
-    /* Ace editor Rosé Pine tweaks */
-    .ace-tomorrow-night .ace_gutter { background: var(--overlay); color: var(--muted); }
-    .ace-tomorrow-night .ace_marker-layer .ace_active-line { background: rgba(64,61,82,0.6); }
-    .ace-tomorrow-night .ace_selection { background: rgba(196,167,231,0.25); }
-    .ace-tomorrow-night .ace_cursor { color: var(--accent); }
-    .ace-tomorrow-night .ace_print-margin { width:0; }
-    .ace-tomorrow-night .ace_comment { color: var(--muted); }
-    .toolbar { display:flex; align-items:center; gap:6px; background:var(--overlay); border:1px solid var(--border); border-radius:8px; padding:6px 10px; margin:8px 16px; }
-    .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:5px 8px; background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; cursor:pointer; user-select:none; transition: transform .02s ease-in-out, background .12s ease; }
-    .btn:hover { background:#2a273f; }
-    .btn:active { transform: translateY(1px); }
-    .btn.secondary { color:var(--muted); }
-    .btn:disabled { opacity:0.5; cursor:not-allowed; pointer-events:none; filter:saturate(60%); }
-    .spacer { flex:1; }
-    .status { color:var(--muted); font-size:12px; text-shadow: var(--text-shadow-contrast); }
-    .visualizer { display:flex; gap:12px; padding:12px 16px; background:var(--bg); border-top:1px solid var(--border); }
-    .panel { flex:1; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; }
-    .panel h3 { margin:0; font-size:12px; font-weight:600; color:var(--muted); text-shadow: var(--text-shadow-contrast); }
-    .panel canvas { width:100%; height:180px; display:block; border-radius:6px; background:#0b0a12; }
-    /* Volume slider styled like other controls */
-    #volumeSlider { width:140px; height:18px; background:transparent; border:none; outline:none; -webkit-appearance:none; appearance:none; }
-    #volumeSlider:focus { outline:none; }
-    /* WebKit */
-    #volumeSlider::-webkit-slider-runnable-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
-    #volumeSlider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); margin-top:-4px; box-shadow:0 0 0 2px rgba(0,0,0,0.2); cursor:pointer; }
-    #volumeSlider:hover::-webkit-slider-thumb { background:var(--accent); }
-    /* Firefox */
-    #volumeSlider::-moz-range-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
-    #volumeSlider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); box-shadow:0 0 0 2px rgba(0,0,0,0.2); cursor:pointer; }
-    #volumeSlider::-moz-focus-outer { border:0; }
-    /* Panel controls container and sliders */
-    .controls { background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:8px; padding:8px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:6px; }
-    .controls label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; text-shadow: var(--text-shadow-contrast); }
-    .ctrlSlider { width:140px; height:18px; background:transparent; border:none; outline:none; -webkit-appearance:none; appearance:none; }
-    .ctrlSlider:focus { outline:none; }
-    .ctrlSlider::-webkit-slider-runnable-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
-    .ctrlSlider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); margin-top:-4px; box-shadow:0 0 0 2px rgba(0,0,0,0.2); cursor:pointer; }
-    .ctrlSlider:hover::-webkit-slider-thumb { background:var(--accent); }
-    .ctrlSlider::-moz-range-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
-    .ctrlSlider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); box-shadow:0 0 0 2px rgba(0,0,0,0.2); cursor:pointer; }
-    .colorSwatch { width:18px; height:18px; border-radius:4px; border:1px solid var(--border); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25); }
-    /* Code preview */
-    .code-panel pre { display:none; }
-    .error-box { margin:0 16px; padding:8px 12px; border-radius:6px; border:1px solid #6b2a3a; background:#2a1220; color:#ffd7e0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; display:none; white-space:pre-wrap; }
-    /* Compact control group for toolbar */
-    .miniGroup { display:inline-flex; align-items:center; gap:8px; padding:6px 8px; background:var(--panel); border:1px solid var(--border); border-radius:6px; }
-    .miniGroup label { color:var(--muted); font-size:12px; }
-    .miniSlider { width:100px; height:18px; background:transparent; border:none; outline:none; -webkit-appearance:none; appearance:none; }
-    .miniSlider::-webkit-slider-runnable-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
-    .miniSlider::-webkit-slider-thumb { -webkit-appearance:none; width:12px; height:12px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); margin-top:-3px; }
-    .miniSlider::-moz-range-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
-    .miniSlider::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); }
-    .miniGroup.disabled { opacity:0.5; pointer-events:none; filter:saturate(60%); }
-    /* Settings modal */
-    .modalBackdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; z-index:1000; }
-    .modalBackdrop.show { display:flex; }
-    .modalCard { width:min(900px, 95vw); height:min(600px, 90vh); background:var(--overlay); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 36px rgba(0,0,0,0.4); display:flex; flex-direction:column; }
-    .modalHeader { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
-    .modalHeader h3 { margin:0; font-size:15px; color:var(--muted); text-shadow: var(--text-shadow-contrast); }
-    .modalBody { flex:1; min-height:0; display:grid; grid-template-columns: 220px 1fr; gap:0; }
-    .modalSidebar { border-right:1px solid var(--border); padding:10px; display:flex; flex-direction:column; gap:6px; background:linear-gradient(var(--panel), var(--overlay)); }
-    .settingsTab { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); cursor:pointer; }
-    .settingsTab[aria-selected="true"] { outline:1px solid var(--accent); background:#2a273f; }
-    .modalContent { padding:14px; overflow:auto; }
-    .paneTitle { margin:0 0 8px 0; font-size:14px; color:var(--muted); }
-    .row { display:flex; align-items:center; gap:10px; padding:6px 0; }
-    .row label { font-size:13px; color:var(--text); }
-    .row .field { margin-left:auto; }
-    .modalFooter { display:flex; justify-content:flex-end; gap:8px; padding:10px 12px; border-top:1px solid var(--border); }
-    .sep { height:1px; background:var(--border); margin:8px 0; }
-    /* Optionally hide disabled buttons when enabled in settings */
-    [data-hide-disabled] .btn:disabled { display:none !important; }
-  </style>
-  <!-- Ace editor for in-place syntax highlighting -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="themes/themes.css">
+  <link id="syntaxThemeLink" rel="stylesheet" href="">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/theme-tomorrow_night.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/mode-javascript.js"></script>
- </head>
- <body>
-   <div class="container">
-     <div class="toolbar">
-       <button id="play" class="btn">▶ Play</button>
-       <button id="pause" class="btn">⏸ Pause</button>
-       <button id="stop" class="btn">⏹ Stop</button>
-       <div style="width:12px"></div>
-       <span class="btn" style="gap:10px; padding:5px 8px; display:inline-flex; align-items:center;">
-         <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
-           <input id="viewWave" type="checkbox" checked /> Waveform
-         </label>
-         <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
-           <input id="viewSpec" type="checkbox" checked /> Spectrogram
-         </label>
-         <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
-           <input id="viewHarm" type="checkbox" checked /> Oscilloscope
-         </label>
-       </span>
-       <div class="spacer"></div>
-       <label style="color:var(--muted); font-size:12px;">Tempo</label>
-       <select id="tempoSelect" class="btn" style="padding:5px 8px;">
-         <option value="0.5">50%</option>
-         <option value="0.75">75%</option>
-         <option value="1" selected>100%</option>
-         <option value="1.25">125%</option>
-         <option value="1.5">150%</option>
-         <option value="2">200%</option>
-       </select>
-       <label style="color:var(--muted); font-size:12px; margin-left:8px;">Mode</label>
-       <select id="modeSelect" class="btn" style="padding:5px 8px;">
-         <option value="byte" selected>Bytebeat</option>
-         <option value="signed">Signed Bytebeat</option>
-         <option value="float">Floatbeat</option>
-         <option value="func">Funcbeat</option>
-       </select>
-       <label style="color:var(--muted); font-size:12px; margin-left:8px;">Hz</label>
-       <select id="hzSelect" class="btn" style="padding:5px 8px;">
-         <option selected>8000</option>
-         <option>11025</option>
-         <option>16000</option>
-         <option>22050</option>
-         <option>32000</option>
-         <option>44100</option>
-         <option>48000</option>
-       </select>
-       <label style="color:var(--muted); font-size:12px; margin-left:8px;">Vol</label>
-       <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.8" />
-       <span id="effectGroup" class="miniGroup">
-         <label>Effect</label>
-         <select id="effectSelect" class="btn" style="padding:4px 6px; height:28px;">
-           <option value="none" selected>None</option>
-           <option value="distortion">Distortion</option>
-           <option value="bitcrusher">Bitcrusher</option>
-         </select>
-         <label>Drive</label>
-         <input id="driveSlider" class="miniSlider" type="range" min="0" max="1" step="0.01" value="0.5" />
-         <label>Bits</label>
-         <input id="bitsSlider" class="miniSlider" type="range" min="4" max="16" step="1" value="8" />
-         <label>Down</label>
-         <input id="downsampleSlider" class="miniSlider" type="range" min="1" max="16" step="1" value="2" />
-       </span>
-       <label class="btn" style="margin-left:8px; padding:5px 8px; gap:6px;">
-         <input id="exactToggle" type="checkbox" /> Exact
-       </label>
-       <div class="spacer"></div>
-       <button id="uploadMp3" class="btn" disabled>Upload MP3</button>
-       <input id="mp3FileInput" type="file" accept="audio/mpeg,.mp3" style="display:none" />
-       <button id="save" class="btn secondary" disabled>Save WAV</button>
-       <button id="captureOsc" class="btn" disabled>Capture Scope</button>
-       <button id="openSettings" class="btn secondary">Settings</button>
-       <div id="status" class="status">stopped</div>
-     </div>
-     <div class="editor">
-       <div id="editor">(
-    t * (
-        (t & 4096
-            ? (t % 65536 < 59392 ? 7 : (t & 7))
-            : 16
-        )
-        ^ (1 & (t >> 14))
-    )
-    >> (3 & -t >> ((t & 2048) ? 2 : 10))
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <div class="toolbarLine topRow">
+        <button id="play" class="btn accent">▶ Play</button>
+        <button id="pause" class="btn accent">⏸ Pause</button>
+        <button id="stop" class="btn accent">⏹ Stop</button>
+        <span class="btn">
+          <label>
+            <input id="viewWave" type="checkbox" checked /> Waveform
+          </label>
+          <label>
+            <input id="viewSpec" type="checkbox" checked /> Spectrogram
+          </label>
+          <label>
+            <input id="viewHarm" type="checkbox" checked /> Oscilloscope
+          </label>
+        </span>
+        <div class="toolbarGroup">
+          <button id="mute" class="btn accent" title="Toggle mute (restore previous volume)">Mute</button>
+          <button id="resetAudio" class="btn accent" title="Reset tempo, volume, effects, and exact toggle">Reset</button>
+          <button id="copyCode" class="btn accent" title="Copy current expression to clipboard">Copy</button>
+          <button id="randomColor" class="btn accent" title="Randomize waveform/oscilloscope color">Color</button>
+          <button id="clearEditor" class="btn accent" title="Clear editor">Clear</button>
+        </div>
+        <div class="spacer"></div>
+        <button id="uploadMp3" class="btn accent" disabled>Upload MP3</button>
+        <input id="mp3FileInput" type="file" accept="audio/mpeg,.mp3" />
+        <button id="save" class="btn accent" disabled>Save WAV</button>
+        <button id="captureOsc" class="btn accent" disabled>Capture Scope</button>
+        <button id="openSettings" class="btn accent">Settings</button>
+      </div>
+      <div class="thinDivider" aria-hidden="true"></div>
+      <div class="toolbarLine audioRowLine">
+        <div id="audioGroup" class="miniGroup audioGroup">
+          <label>Tempo</label>
+          <select id="tempoSelect" class="btn">
+            <option value="0.5">50%</option>
+            <option value="0.75">75%</option>
+            <option value="1" selected>100%</option>
+            <option value="1.25">125%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+          </select>
+          <label>Mode</label>
+          <select id="modeSelect" class="btn">
+            <option value="byte" selected>Bytebeat</option>
+            <option value="signed">Signed Bytebeat</option>
+            <option value="float">Floatbeat</option>
+            <option value="func">Funcbeat</option>
+          </select>
+          <label>Hz</label>
+          <select id="hzSelect" class="btn">
+            <option selected>8000</option>
+            <option>11025</option>
+            <option>16000</option>
+            <option>22050</option>
+            <option>32000</option>
+            <option>44100</option>
+            <option>48000</option>
+          </select>
+          <label>Vol</label>
+          <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.8" />
+          <span id="effectGroup" class="miniGroup">
+            <label>Effect</label>
+            <select id="effectSelect" class="btn">
+              <option value="none" selected>None</option>
+              <option value="distortion">Distortion</option>
+              <option value="bitcrusher">Bitcrusher</option>
+            </select>
+            <label>Drive</label>
+            <input id="driveSlider" class="miniSlider" type="range" min="0" max="1" step="0.01" value="0.5" />
+            <label>Bits</label>
+            <input id="bitsSlider" class="miniSlider" type="range" min="4" max="16" step="1" value="8" />
+            <label>Down</label>
+            <input id="downsampleSlider" class="miniSlider" type="range" min="1" max="16" step="1" value="2" />
+          </span>
+          <label class="btn"><input id="exactToggle" type="checkbox" /> Exact</label>
+        </div>
+      </div>
+    </div>
+    <div class="editor">
+      <div id="editor">(
+   t * (
+       (t & 4096
+           ? (t % 65536 < 59392 ? 7 : (t & 7))
+           : 16
+       )
+       ^ (1 & (t >> 14))
+   )
+   >> (3 & -t >> ((t & 2048) ? 2 : 10))
 )
 |
 (
-    (t & 16384)
-        ? ((t & 4096) ? 10 : 3)
-        : 2
+   (t & 16384)
+       ? ((t & 4096) ? 10 : 3)
+       : 2
 )
 </div>
-     </div>
-     <div class="code-panel"></div>
-     <pre id="errorBox" class="error-box"></pre>
-     <section class="visualizer">
-       <div class="panel" id="panelWave">
-         <h3>Waveform</h3>
-         <canvas id="waveCanvas"></canvas>
-         <div class="controls">
-           <label>
-             R
-             <input id="waveR" class="ctrlSlider" type="range" min="0" max="255" value="57" />
-           </label>
-           <label>
-             G
-             <input id="waveG" class="ctrlSlider" type="range" min="0" max="255" value="255" />
-           </label>
-           <label>
-             B
-             <input id="waveB" class="ctrlSlider" type="range" min="0" max="255" value="20" />
-           </label>
-           <div id="waveColorSwatch" class="colorSwatch"></div>
-         </div>
-       </div>
-       <div class="panel" id="panelSpec">
-         <h3>Spectrogram</h3>
-         <canvas id="specCanvas"></canvas>
-         <div class="controls">
-           <label>
-             Contrast
-             <input id="specContrast" class="ctrlSlider" type="range" min="0" max="2" step="0.01" value="1" />
-           </label>
-           <label>
-             Brightness
-             <input id="specBrightness" class="ctrlSlider" type="range" min="0" max="1" step="0.01" value="0.2" />
-           </label>
-         </div>
-       </div>
-       <div class="panel" id="panelHarm">
-         <h3>Oscilloscope</h3>
-         <canvas id="harmCanvas"></canvas>
-         <div class="controls">
-           <label>
-             Delay
-             <input id="oscDelay" class="ctrlSlider" type="range" min="0" max="100" value="25" />
-           </label>
-           <label>
-             Persistence
-             <input id="oscPersist" class="ctrlSlider" type="range" min="0" max="100" value="28" />
-           </label>
-           <label>
-             Thickness
-             <input id="oscThick" class="ctrlSlider" type="range" min="1" max="6" step="0.1" value="1.6" />
-           </label>
-           <label>
-             <input id="oscSquare" type="checkbox" checked /> Square Aspect
-           </label>
-         </div>
-       </div>
-     </section>
-   </div>
-   <!-- Settings Modal -->
-   <div id="settingsModal" class="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-     <div class="modalCard">
-       <div class="modalHeader">
-         <h3 id="settingsTitle">Settings</h3>
-         <button id="closeSettings" class="btn">✕</button>
-       </div>
-       <div class="modalBody">
-         <nav class="modalSidebar" role="tablist" aria-label="Settings Categories">
-           <button class="settingsTab" role="tab" id="tabAppearance" aria-controls="paneAppearance" aria-selected="true">Appearance</button>
-           <button class="settingsTab" role="tab" id="tabGeneral" aria-controls="paneGeneral" aria-selected="false">General</button>
-           <button class="settingsTab" role="tab" id="tabAccessibility" aria-controls="paneAccessibility" aria-selected="false">Accessibility</button>
-           <button class="settingsTab" role="tab" id="tabAudio" aria-controls="paneAudio" aria-selected="false">Audio Parsing</button>
-         </nav>
-         <section class="modalContent">
-           <div id="paneAppearance" role="tabpanel" aria-labelledby="tabAppearance">
-             <h4 class="paneTitle">Appearance</h4>
-             <div class="row">
-               <label for="themeSelect">Theme</label>
-               <select id="themeSelect" class="btn field">
-                 <option value="system">System</option>
-                 <option value="light">Light</option>
-                 <option value="dark">Dark</option>
-                 <option value="matrix" selected>Matrix (Black & Green)</option>
-                 <option value="rose">Rosé Pine</option>
-                 <option value="dracula">Dracula</option>
-               </select>
-             </div>
-             <div class="row">
-               <label for="uiScale">UI Scale</label>
-               <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="field" />
-             </div>
-           </div>
-           <div id="paneGeneral" role="tabpanel" aria-labelledby="tabGeneral" hidden>
-             <h4 class="paneTitle">General</h4>
-             <div class="row"><input type="checkbox" id="setShowWave" /><label for="setShowWave">Show Waveform panel by default</label></div>
-             <div class="row"><input type="checkbox" id="setShowSpec" /><label for="setShowSpec">Show Spectrogram panel by default</label></div>
-             <div class="row"><input type="checkbox" id="setShowHarm" /><label for="setShowHarm">Show Oscilloscope panel by default</label></div>
-             <div class="row"><input type="checkbox" id="setSquareAspect" /><label for="setSquareAspect">Square Aspect by default</label></div>
-             <div class="row"><input type="checkbox" id="setHideDisabled" /><label for="setHideDisabled">Hide Disabled buttons</label></div>
-           </div>
-           <div id="paneAccessibility" role="tabpanel" aria-labelledby="tabAccessibility" hidden>
-             <h4 class="paneTitle">Accessibility</h4>
-             <div class="row"><label>No accessibility options yet</label></div>
-           </div>
-           <div id="paneAudio" role="tabpanel" aria-labelledby="tabAudio" hidden>
-             <h4 class="paneTitle">Audio Parsing</h4>
-             <div class="row">
-               <label for="defaultMode">Default Mode</label>
-               <select id="defaultMode" class="btn field">
-                 <option value="byte">Bytebeat</option>
-                 <option value="signed">Signed Bytebeat</option>
-                 <option value="float" selected>Floatbeat</option>
-                 <option value="func">Funcbeat</option>
-               </select>
-             </div>
-             <div class="row">
-               <label for="defaultHz">Default Hz</label>
-               <select id="defaultHz" class="btn field">
-                 <option>8000</option>
-                 <option>11025</option>
-                 <option>16000</option>
-                 <option>22050</option>
-                 <option>32000</option>
-                 <option selected>44100</option>
-                 <option>48000</option>
-               </select>
-             </div>
-           </div>
-         </section>
-       </div>
-       <div class="modalFooter">
-         <button id="applySettings" class="btn secondary">Apply</button>
-         <button id="saveSettings" class="btn">Save</button>
-         <button id="cancelSettings" class="btn secondary">Close</button>
-       </div>
-     </div>
-   </div>
-   <script defer src="../src/renderer/index.js"></script>
- </body>
- </html>
+    </div>
+    <div class="code-panel"></div>
+    <pre id="statusBox" class="status-box" aria-live="polite"></pre>
+    <pre id="errorBox" class="error-box"></pre>
+    <section class="visualizer">
+      <div class="panel" id="panelWave">
+        <h3>Waveform</h3>
+        <canvas id="waveCanvas"></canvas>
+        <div class="controls">
+          <label>
+            R
+            <input id="waveR" class="ctrlSlider" type="range" min="0" max="255" value="57" />
+          </label>
+          <label>
+            G
+            <input id="waveG" class="ctrlSlider" type="range" min="0" max="255" value="255" />
+          </label>
+          <label>
+            B
+            <input id="waveB" class="ctrlSlider" type="range" min="0" max="255" value="20" />
+          </label>
+          <div id="waveColorSwatch" class="colorSwatch"></div>
+        </div>
+      </div>
+      <div class="panel" id="panelSpec">
+        <h3>Spectrogram</h3>
+        <canvas id="specCanvas"></canvas>
+        <div class="controls">
+          <label>
+            Contrast
+            <input id="specContrast" class="ctrlSlider" type="range" min="0" max="2" step="0.01" value="1" />
+          </label>
+          <label>
+            Brightness
+            <input id="specBrightness" class="ctrlSlider" type="range" min="0" max="1" step="0.01" value="0.2" />
+          </label>
+        </div>
+      </div>
+      <div class="panel" id="panelHarm">
+        <h3>Oscilloscope</h3>
+        <canvas id="harmCanvas"></canvas>
+        <div class="controls">
+          <label>
+            Delay
+            <input id="oscDelay" class="ctrlSlider" type="range" min="0" max="100" value="25" />
+          </label>
+          <label>
+            Persistence
+            <input id="oscPersist" class="ctrlSlider" type="range" min="0" max="100" value="28" />
+          </label>
+          <label>
+            Thickness
+            <input id="oscThick" class="ctrlSlider" type="range" min="1" max="6" step="0.1" value="1.6" />
+          </label>
+          <label>
+            <input id="oscSquare" type="checkbox" checked /> Square Aspect
+          </label>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div id="settingsModal" class="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modalCard">
+      <div class="modalHeader">
+        <h3 id="settingsTitle">Settings</h3>
+        <button id="closeSettings" class="btn accent">✕</button>
+      </div>
+      <div class="modalBody">
+        <nav class="modalSidebar" role="tablist" aria-label="Settings Categories">
+          <button class="settingsTab" role="tab" id="tabAppearance" aria-controls="paneAppearance" aria-selected="true">Appearance</button>
+          <button class="settingsTab" role="tab" id="tabGeneral" aria-controls="paneGeneral" aria-selected="false">General</button>
+          <button class="settingsTab" role="tab" id="tabAccessibility" aria-controls="paneAccessibility" aria-selected="false">Accessibility</button>
+          <button class="settingsTab" role="tab" id="tabAudio" aria-controls="paneAudio" aria-selected="false">Audio Parsing</button>
+        </nav>
+        <section class="modalContent">
+          <div id="paneAppearance" role="tabpanel" aria-labelledby="tabAppearance">
+            <h4 class="paneTitle">Appearance</h4>
+            <div class="row">
+              <label for="themeSelect">Theme</label>
+              <select id="themeSelect" class="btn accent">
+                <option value="system">System</option>
+                <option value="catppuccin-latte">Catppuccin Latte</option>
+                <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                <option value="dark">Dark</option>
+                <option value="dracula">Dracula</option>
+                <option value="gruvbox">Gruvbox</option>
+                <option value="light">Light</option>
+                <option value="matrix" selected>Matrix (Black & Green)</option>
+                <option value="nord">Nord</option>
+                <option value="rosepine">Rosé Pine</option>
+                <option value="solarized-dark">Solarized Dark</option>
+                <option value="solarized-light">Solarized Light</option>
+                <option value="tokyo-night">Tokyo Night</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="uiScale">UI Scale</label>
+              <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="field" />
+            </div>
+            <div class="sep" aria-hidden="true"></div>
+            <h4 class="paneTitle">Syntax Highlighting</h4>
+            <div class="row">
+              <label for="syntaxTheme">Syntax Theme</label>
+              <select id="syntaxTheme" class="btn accent">
+                <option value="detect">Detect</option>
+                <option value="tomorrow-night" selected>Tomorrow Night (Default)</option>
+                <option value="catppuccin-latte">Catppuccin Latte</option>
+                <option value="catppuccin-mocha">Catppuccin Mocha</option>
+                <option value="dark">Dark</option>
+                <option value="dracula">Dracula</option>
+                <option value="gruvbox">Gruvbox</option>
+                <option value="light">Light</option>
+                <option value="matrix">Matrix</option>
+                <option value="nord">Nord</option>
+                <option value="rosepine">Rosé Pine</option>
+                <option value="solarized-dark">Solarized Dark</option>
+                <option value="solarized-light">Solarized Light</option>
+                <option value="tokyo-night">Tokyo Night</option>
+              </select>
+            </div>
+          </div>
+          <div id="paneGeneral" role="tabpanel" aria-labelledby="tabGeneral" hidden>
+            <h4 class="paneTitle">General</h4>
+            <div class="row"><input type="checkbox" id="setShowWave" /><label for="setShowWave">Show Waveform panel by default</label></div>
+            <div class="row"><input type="checkbox" id="setShowSpec" /><label for="setShowSpec">Show Spectrogram panel by default</label></div>
+            <div class="row"><input type="checkbox" id="setShowHarm" /><label for="setShowHarm">Show Oscilloscope panel by default</label></div>
+            <div class="row"><input type="checkbox" id="setSquareAspect" /><label for="setSquareAspect">Square Aspect by default</label></div>
+            <div class="row"><input type="checkbox" id="setHideDisabled" /><label for="setHideDisabled">Hide Disabled buttons</label></div>
+          </div>
+          <div id="paneAccessibility" role="tabpanel" aria-labelledby="tabAccessibility" hidden>
+            <h4 class="paneTitle">Accessibility</h4>
+            <div class="row"><label>No accessibility options yet</label></div>
+          </div>
+          <div id="paneAudio" role="tabpanel" aria-labelledby="tabAudio" hidden>
+            <h4 class="paneTitle">Audio Parsing</h4>
+            <div class="row">
+              <label for="defaultMode">Default Mode</label>
+              <select id="defaultMode" class="btn accent">
+                <option value="byte">Bytebeat</option>
+                <option value="signed">Signed Bytebeat</option>
+                <option value="float" selected>Floatbeat</option>
+                <option value="func">Funcbeat</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="defaultHz">Default Hz</label>
+              <select id="defaultHz" class="btn accent">
+                <option>8000</option>
+                <option>11025</option>
+                <option>16000</option>
+                <option>22050</option>
+                <option>32000</option>
+                <option selected>44100</option>
+                <option>48000</option>
+              </select>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="modalFooter">
+        <button id="applySettings" class="btn accent">Apply</button>
+        <button id="saveSettings" class="btn accent">Save</button>
+        <button id="cancelSettings" class="btn accent">Close</button>
+      </div>
+    </div>
+  </div>
+  <script defer src="../src/renderer/index.js"></script>
+</body>
+</html>
