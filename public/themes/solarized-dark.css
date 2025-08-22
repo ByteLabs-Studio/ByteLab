@@ -1,0 +1,34 @@
+/* Solarized Dark theme */
+[data-theme="solarized-dark"] {
+  --bg:#002b36;
+  --panel:#073642;
+  --overlay:#0a3c4e;
+  --text:#eee8d5; /* base2 */
+  --muted:#93a1a1; /* base1 */
+  --accent:#268bd2; /* blue */
+  --accent2:#2aa198; /* cyan */
+  --accent3:#dc322f; /* red */
+  --border:#0f4659;
+  --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
+  /* Status (success) tones: cyan based */
+  --status-bg:#073c3d;     /* deep cyan */
+  --status-border:#2aa198; /* cyan border */
+  --status-text:#d7fffb;   /* pale aqua text */
+  /* Buttons */
+  --btn-bg: var(--panel);
+  --btn-text: var(--text);
+  --btn-border: var(--border);
+  --btn-hover: #0d4a55;
+  --btn-success-bg: #08382d;
+  --btn-success-hover: #0c4235;
+  --btn-success-text: #cffff3;
+  --btn-danger-bg: #3a1f20;
+  --btn-danger-hover: #452526;
+  --btn-danger-text: #ffd7dc;
+  --btn-warning-bg: #3a2f17;
+  --btn-warning-hover: #43361b;
+  --btn-warning-text: #feecc8;
+  --btn-accent-bg: var(--accent);
+  --btn-accent-hover: #1f74b3;
+  --btn-accent-text: #04141a;
+}

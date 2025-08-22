@@ -1,0 +1,18 @@
+@import url('./light.css');
+@import url('./dark.css');
+@import url('./matrix.css');
+@import url('./rosepine.css');
+@import url('./dracula.css');
+@import url('./nord.css');
+@import url('./gruvbox.css');
+@import url('./solarized-light.css');
+@import url('./solarized-dark.css');
+@import url('./catppuccin-mocha.css');
+@import url('./catppuccin-latte.css');
+@import url('./tokyo-night.css');
+
+:root:not([data-theme]) .btn.secondary,
+[data-theme="light"] .btn.secondary { color:#374151; }
+
+:root:not([data-theme]) .toolbar label,
+[data-theme="light"] .toolbar label { color:#374151; }
