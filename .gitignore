@@ -5,7 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build output
-dist/
+# dist/ # Needs to be pushed for GitHub releases
 out/
 
 # macOS system files
