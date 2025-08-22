@@ -23,6 +23,8 @@
       "linux": {
         "target": "zip"
       },
-      "publish": ["github"]
+      "publish": [
+        { "provider": "github", "releaseType": "release" }
+      ]
     }
   }
