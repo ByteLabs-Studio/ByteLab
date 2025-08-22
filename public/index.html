@@ -12,6 +12,11 @@
 </head>
 <body>
   <div class="container">
+    <div class="titlebar" role="banner">
+      <div class="titlebar-drag"></div>
+      <div class="titlebar-title" id="appTitle">ByteLab</div>
+      <button id="openSettings" class="titlebar-btn" title="Settings" aria-label="Settings">⚙︎</button>
+    </div>
     <div class="toolbar">
       <div class="toolbarLine topRow">
         <button id="play" class="btn accent">▶ Play</button>
@@ -32,6 +37,7 @@
           <button id="mute" class="btn accent" title="Toggle mute (restore previous volume)">Mute</button>
           <button id="resetAudio" class="btn accent" title="Reset tempo, volume, effects, and exact toggle">Reset</button>
           <button id="copyCode" class="btn accent" title="Copy current expression to clipboard">Copy</button>
+          <label class="btn" title="Show inline errors while typing"><input id="lintToggle" type="checkbox" /> Lint</label>
           <button id="randomColor" class="btn accent" title="Randomize waveform/oscilloscope color">Color</button>
           <button id="clearEditor" class="btn accent" title="Clear editor">Clear</button>
         </div>
@@ -40,7 +46,6 @@
         <input id="mp3FileInput" type="file" accept="audio/mpeg,.mp3" />
         <button id="save" class="btn accent" disabled>Save WAV</button>
         <button id="captureOsc" class="btn accent" disabled>Capture Scope</button>
-        <button id="openSettings" class="btn accent">Settings</button>
       </div>
       <div class="thinDivider" aria-hidden="true"></div>
       <div class="toolbarLine audioRowLine">
@@ -60,6 +65,7 @@
             <option value="signed">Signed Bytebeat</option>
             <option value="float">Floatbeat</option>
             <option value="func">Funcbeat</option>
+            <option value="program">Program</option>
           </select>
           <label>Hz</label>
           <select id="hzSelect" class="btn">
@@ -206,7 +212,7 @@
             </div>
             <div class="row">
               <label for="uiScale">UI Scale</label>
-              <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="field" />
+              <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="ctrlSlider field" />
             </div>
             <div class="sep" aria-hidden="true"></div>
             <h4 class="paneTitle">Syntax Highlighting</h4>
@@ -237,6 +243,7 @@
             <div class="row"><input type="checkbox" id="setShowHarm" /><label for="setShowHarm">Show Oscilloscope panel by default</label></div>
             <div class="row"><input type="checkbox" id="setSquareAspect" /><label for="setSquareAspect">Square Aspect by default</label></div>
             <div class="row"><input type="checkbox" id="setHideDisabled" /><label for="setHideDisabled">Hide Disabled buttons</label></div>
+            <div class="row"><input type="checkbox" id="setLintDefault" /><label for="setLintDefault">Lint by default</label></div>
           </div>
           <div id="paneAccessibility" role="tabpanel" aria-labelledby="tabAccessibility" hidden>
             <h4 class="paneTitle">Accessibility</h4>
@@ -251,6 +258,7 @@
                 <option value="signed">Signed Bytebeat</option>
                 <option value="float" selected>Floatbeat</option>
                 <option value="func">Funcbeat</option>
+                <option value="program">Program</option>
               </select>
             </div>
             <div class="row">
