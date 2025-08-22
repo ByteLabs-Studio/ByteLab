@@ -46,12 +46,12 @@ const settingsModal = document.getElementById('settingsModal');
 const closeSettingsBtn = document.getElementById('closeSettings');
 const cancelSettingsBtn = document.getElementById('cancelSettings');
 const saveSettingsBtn = document.getElementById('saveSettings');
+const applySettingsBtn = document.getElementById('applySettings');
 const setShowWave = document.getElementById('setShowWave');
 const setShowSpec = document.getElementById('setShowSpec');
 const setShowHarm = document.getElementById('setShowHarm');
 const setSquareAspect = document.getElementById('setSquareAspect');
-
-// Settings: sidebar tabs and fields
+const setHideDisabled = document.getElementById('setHideDisabled');
 const tabAppearance = document.getElementById('tabAppearance');
 const tabGeneral = document.getElementById('tabGeneral');
 const tabAccessibility = document.getElementById('tabAccessibility');
@@ -1116,9 +1116,24 @@ function applySettings(obj) {
   if (typeof obj.squareAspect === 'boolean' && oscSquareEl) {
     oscSquareEl.checked = obj.squareAspect; oscSquare = obj.squareAspect;
   }
-  // Theme (placeholder hook)
-  if (typeof obj.theme === 'string' && themeSelect) {
-    themeSelect.value = obj.theme;
+  // Hide disabled buttons
+  if (typeof obj.hideDisabled === 'boolean') {
+    if (obj.hideDisabled) {
+      document.documentElement.setAttribute('data-hide-disabled', '1');
+    } else {
+      document.documentElement.removeAttribute('data-hide-disabled');
+    }
+    if (setHideDisabled) setHideDisabled.checked = obj.hideDisabled;
+  }
+  // Theme: set data-theme on documentElement
+  if (typeof obj.theme === 'string') {
+    const theme = obj.theme || 'matrix';
+    if (theme === 'system') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+    if (themeSelect) themeSelect.value = theme;
   }
   // UI scale (use CSS zoom for now)
   if (typeof obj.uiScale === 'number') {
@@ -1148,7 +1163,8 @@ function prefillSettingsModalFromCurrent() {
   if (setShowSpec && viewSpecCb) setShowSpec.checked = !!viewSpecCb.checked;
   if (setShowHarm && viewHarmCb) setShowHarm.checked = !!viewHarmCb.checked;
   if (setSquareAspect && oscSquareEl) setSquareAspect.checked = !!oscSquareEl.checked;
-  if (themeSelect) themeSelect.value = themeSelect.value || 'rose';
+  if (setHideDisabled) setHideDisabled.checked = document.documentElement.hasAttribute('data-hide-disabled');
+  if (themeSelect) themeSelect.value = themeSelect.value || document.documentElement.getAttribute('data-theme') || 'matrix';
   if (uiScale) uiScale.value = String(parseFloat(document.documentElement.style.zoom || '1') || 1);
   if (defaultModeSel && modeSelect) defaultModeSel.value = modeSelect.value || 'float';
   if (defaultHzSel && hzSelect) defaultHzSel.value = String(hzSelect.value || '8000');
@@ -1176,7 +1192,8 @@ saveSettingsBtn?.addEventListener('click', () => {
     showSpec: !!setShowSpec?.checked,
     showHarm: !!setShowHarm?.checked,
     squareAspect: !!setSquareAspect?.checked,
-    theme: themeSelect?.value || 'rose',
+    hideDisabled: !!setHideDisabled?.checked,
+    theme: themeSelect?.value || 'matrix',
     uiScale: parseFloat(uiScale?.value || '1') || 1,
     defaultMode: defaultModeSel?.value || 'float',
     defaultHz: defaultHzSel?.value || '44100',
@@ -1185,6 +1202,22 @@ saveSettingsBtn?.addEventListener('click', () => {
   applySettings(obj);
   hideSettings();
   updateStatus('settings saved');
+});
+applySettingsBtn?.addEventListener('click', () => {
+  const obj = {
+    showWave: !!setShowWave?.checked,
+    showSpec: !!setShowSpec?.checked,
+    showHarm: !!setShowHarm?.checked,
+    squareAspect: !!setSquareAspect?.checked,
+    hideDisabled: !!setHideDisabled?.checked,
+    theme: themeSelect?.value || 'matrix',
+    uiScale: parseFloat(uiScale?.value || '1') || 1,
+    defaultMode: defaultModeSel?.value || 'float',
+    defaultHz: defaultHzSel?.value || '44100',
+  };
+  saveSettings(obj);
+  applySettings(obj);
+  updateStatus('settings applied');
 });
 
 // Tabs logic
@@ -1200,4 +1233,5 @@ tabAccessibility?.addEventListener('click', () => selectSettingsTab(tabAccessibi
 tabAudio?.addEventListener('click', () => selectSettingsTab(tabAudio, paneAudio));
 
 // Load and apply saved settings on startup
-applySettings(loadSettings());
+const initialSettings = loadSettings() || { theme: 'matrix' };
+applySettings(initialSettings);

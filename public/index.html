@@ -5,21 +5,53 @@
   <title>ByteLab</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Rosé Pine palette */
+    /* Theme variables */
+    /* System default: Light variables */
     :root {
-      --bg:#191724;         /* base */
-      --panel:#1f1d2e;      /* surface */
-      --overlay:#26233a;    /* overlay */
-      --text:#e0def4;       /* text */
-      --muted:#6e6a86;      /* muted */
-      --accent:#c4a7e7;     /* iris */
-      --accent2:#9ccfd8;    /* foam */
-      --accent3:#eb6f92;    /* love */
-      --border:#2a283e;     /* subtle border */
+      --bg:#f7f8fa;
+      --panel:#ffffff;
+      --overlay:#eef1f5;
+      --text:#111418;
+      --muted:#6b7280;
+      --accent:#2563eb;
+      --accent2:#10b981;
+      --accent3:#ef4444;
+      --border:#d6dae1;
+      --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.55);
     }
+    /* System dark override when no explicit theme is set */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:#0b0e0c; --panel:#0f1411; --overlay:#131a16; --text:#c9fdd7; --muted:#6aa97e; --accent:#2bdc77; --accent2:#1db954; --accent3:#7ef29a; --border:#1a211c;
+      }
+    }
+    /* Explicit themes override system */
+    [data-theme="light"] { /* explicit light */
+      --bg:#f7f8fa; --panel:#ffffff; --overlay:#eef1f5; --text:#111418; --muted:#4b5563; --accent:#2563eb; --accent2:#10b981; --accent3:#ef4444; --border:#d6dae1; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.55);
+    }
+    [data-theme="dark"] {
+      --bg:#0b0e0c; --panel:#0f1411; --overlay:#131a16; --text:#c9fdd7; --muted:#9fbfaa; --accent:#2bdc77; --accent2:#1db954; --accent3:#7ef29a; --border:#1a211c; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
+    }
+    [data-theme="matrix"] {
+      --bg:#0b0e0c; --panel:#0f1411; --overlay:#131a16; --text:#e7fff2; --muted:#7ad19a; --accent:#2bdc77; --accent2:#1db954; --accent3:#7ef29a; --border:#1a211c; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
+    }
+    [data-theme="rose"] { /* Rosé Pine */
+      --bg:#191724; --panel:#1f1d2e; --overlay:#26233a; --text:#e0def4; --muted:#a09cb6; --accent:#c4a7e7; --accent2:#9ccfd8; --accent3:#eb6f92; --border:#2a283e; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
+    }
+    [data-theme="dracula"] {
+      --bg:#282a36; --panel:#2f3142; --overlay:#34364a; --text:#f8f8f2; --muted:#9aa3cf; --accent:#bd93f9; --accent2:#50fa7b; --accent3:#ff79c6; --border:#3b3e54; --text-shadow-contrast: 0 1px 2px rgba(0,0,0,0.35);
+    }
+    /* Improve contrast for labels/buttons in light mode */
+    :root:not([data-theme]), [data-theme="light"] {
+      --muted: #4b5563;
+    }
+    [data-theme="light"] .btn.secondary,
+    :root:not([data-theme]) .btn.secondary { color:#374151; }
+    [data-theme="light"] .toolbar label,
+    :root:not([data-theme]) .toolbar label { color:#374151; }
     html, body { height:100%; margin:0; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
     .container { display:flex; flex-direction:column; height:100vh; }
-    .editor { flex:1; display:flex; flex-direction:column; gap:8px; padding:0 16px 12px; }
+    .editor { flex:1; display:flex; flex-direction:column; gap:8px; padding:0 16px 0; }
     #editor { flex:1; min-height:200px; max-height:50vh; border:1px solid var(--border); border-radius:8px; }
     #editor.ace_editor { background: var(--panel); color: var(--text); border-radius:8px; }
     /* Ace editor Rosé Pine tweaks */
@@ -36,10 +68,10 @@
     .btn.secondary { color:var(--muted); }
     .btn:disabled { opacity:0.5; cursor:not-allowed; pointer-events:none; filter:saturate(60%); }
     .spacer { flex:1; }
-    .status { color:var(--muted); font-size:12px; }
+    .status { color:var(--muted); font-size:12px; text-shadow: var(--text-shadow-contrast); }
     .visualizer { display:flex; gap:12px; padding:12px 16px; background:var(--bg); border-top:1px solid var(--border); }
     .panel { flex:1; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:6px; }
-    .panel h3 { margin:0; font-size:12px; font-weight:600; color:var(--muted); }
+    .panel h3 { margin:0; font-size:12px; font-weight:600; color:var(--muted); text-shadow: var(--text-shadow-contrast); }
     .panel canvas { width:100%; height:180px; display:block; border-radius:6px; background:#0b0a12; }
     /* Volume slider styled like other controls */
     #volumeSlider { width:140px; height:18px; background:transparent; border:none; outline:none; -webkit-appearance:none; appearance:none; }
@@ -54,7 +86,7 @@
     #volumeSlider::-moz-focus-outer { border:0; }
     /* Panel controls container and sliders */
     .controls { background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:8px; padding:8px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:6px; }
-    .controls label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; }
+    .controls label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:12px; text-shadow: var(--text-shadow-contrast); }
     .ctrlSlider { width:140px; height:18px; background:transparent; border:none; outline:none; -webkit-appearance:none; appearance:none; }
     .ctrlSlider:focus { outline:none; }
     .ctrlSlider::-webkit-slider-runnable-track { height:8px; background:linear-gradient(var(--panel), var(--overlay)); border:1px solid var(--border); border-radius:6px; }
@@ -80,7 +112,7 @@
     .modalBackdrop.show { display:flex; }
     .modalCard { width:min(900px, 95vw); height:min(600px, 90vh); background:var(--overlay); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 36px rgba(0,0,0,0.4); display:flex; flex-direction:column; }
     .modalHeader { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
-    .modalHeader h3 { margin:0; font-size:15px; color:var(--muted); }
+    .modalHeader h3 { margin:0; font-size:15px; color:var(--muted); text-shadow: var(--text-shadow-contrast); }
     .modalBody { flex:1; min-height:0; display:grid; grid-template-columns: 220px 1fr; gap:0; }
     .modalSidebar { border-right:1px solid var(--border); padding:10px; display:flex; flex-direction:column; gap:6px; background:linear-gradient(var(--panel), var(--overlay)); }
     .settingsTab { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); cursor:pointer; }
@@ -92,6 +124,8 @@
     .row .field { margin-left:auto; }
     .modalFooter { display:flex; justify-content:flex-end; gap:8px; padding:10px 12px; border-top:1px solid var(--border); }
     .sep { height:1px; background:var(--border); margin:8px 0; }
+    /* Optionally hide disabled buttons when enabled in settings */
+    [data-hide-disabled] .btn:disabled { display:none !important; }
   </style>
   <!-- Ace editor for in-place syntax highlighting -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
@@ -268,9 +302,17 @@
              <div class="row">
                <label for="themeSelect">Theme</label>
                <select id="themeSelect" class="btn field">
-                 <option value="rose" selected>Rosé Pine (Dark)</option>
                  <option value="system">System</option>
+                 <option value="light">Light</option>
+                 <option value="dark">Dark</option>
+                 <option value="matrix" selected>Matrix (Black & Green)</option>
+                 <option value="rose">Rosé Pine</option>
+                 <option value="dracula">Dracula</option>
                </select>
+             </div>
+             <div class="row">
+               <label for="uiScale">UI Scale</label>
+               <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="field" />
              </div>
            </div>
            <div id="paneGeneral" role="tabpanel" aria-labelledby="tabGeneral" hidden>
@@ -279,13 +321,11 @@
              <div class="row"><input type="checkbox" id="setShowSpec" /><label for="setShowSpec">Show Spectrogram panel by default</label></div>
              <div class="row"><input type="checkbox" id="setShowHarm" /><label for="setShowHarm">Show Oscilloscope panel by default</label></div>
              <div class="row"><input type="checkbox" id="setSquareAspect" /><label for="setSquareAspect">Square Aspect by default</label></div>
+             <div class="row"><input type="checkbox" id="setHideDisabled" /><label for="setHideDisabled">Hide Disabled buttons</label></div>
            </div>
            <div id="paneAccessibility" role="tabpanel" aria-labelledby="tabAccessibility" hidden>
              <h4 class="paneTitle">Accessibility</h4>
-             <div class="row">
-               <label for="uiScale">UI Scale</label>
-               <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="field" />
-             </div>
+             <div class="row"><label>No accessibility options yet</label></div>
            </div>
            <div id="paneAudio" role="tabpanel" aria-labelledby="tabAudio" hidden>
              <h4 class="paneTitle">Audio Parsing</h4>
@@ -314,6 +354,7 @@
          </section>
        </div>
        <div class="modalFooter">
+         <button id="applySettings" class="btn secondary">Apply</button>
          <button id="saveSettings" class="btn">Save</button>
          <button id="cancelSettings" class="btn secondary">Close</button>
        </div>
