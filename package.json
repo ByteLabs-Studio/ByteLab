@@ -1,0 +1,11 @@
+{
+    "name": "bytelab",
+    "version": "1.0.0",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "electron ."
+    },
+    "devDependencies": {
+        "electron": "^26.6.10"
+    }
+}
