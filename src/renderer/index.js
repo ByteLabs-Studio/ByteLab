@@ -24,8 +24,8 @@ const captureOscBtn = document.getElementById('captureOsc');
 const uploadMp3Btn = document.getElementById('uploadMp3');
 const mp3FileInput = document.getElementById('mp3FileInput');
 const exactToggle = document.getElementById('exactToggle');
-
-// Oscilloscope controls
+const lintToggle = document.getElementById('lintToggle');
+let lintEnabled = false;
 const oscDelayEl = document.getElementById('oscDelay');
 const oscPersistEl = document.getElementById('oscPersist');
 const oscThickEl = document.getElementById('oscThick');
@@ -45,6 +45,8 @@ const driveSlider = document.getElementById('driveSlider');
 const bitsSlider = document.getElementById('bitsSlider');
 const downsampleSlider = document.getElementById('downsampleSlider');
 let aceEditor = null;
+let AceRange = null;
+let errorMarkerId = null;
 
 // Settings modal elements
 const openSettingsBtn = document.getElementById('openSettings');
@@ -100,6 +102,8 @@ let lastNonZeroVol = 0.8;
 let muted = false;
 let currentMode = 'float';
 let exactMode = false;
+// Program mode display buffer (updated when user code throws display strings)
+window._programDisplay = '';
 // Oscilloscope state
 let oscDelayVal = 25;
 let oscPersistVal = 28;
@@ -144,6 +148,7 @@ let statusHideTimer = 0;
 
 function showError(message) {
   if (!errorBox) return;
+  if (!lintEnabled) return; // suppress UI errors when linting is off
   errorBox.textContent = message;
   errorBox.classList.add('show');
 }
@@ -151,6 +156,16 @@ function showError(message) {
 function clearError() {
   if (!errorBox) return;
   errorBox.classList.remove('show');
+  // also clear any markers/annotations
+  try {
+    if (aceEditor) {
+      if (errorMarkerId != null) {
+        aceEditor.getSession().removeMarker(errorMarkerId);
+        errorMarkerId = null;
+      }
+      aceEditor.getSession().clearAnnotations();
+    }
+  } catch (_) {}
 }
 
 function parseLineColFromStack(err) {
@@ -160,38 +175,166 @@ function parseLineColFromStack(err) {
   return null;
 }
 
-function createExprFunc(exprText) {
-  const wrapped = `return (\n${exprText}\n);`;
+function tokenAt(lineText, col) {
+  const i = Math.max(0, Math.min(lineText.length, (col|0) - 1));
+  // Expand to a wordish token or single punctuator
+  const isWord = /[\w$]/;
+  if (isWord.test(lineText[i])) {
+    let s = i, e = i;
+    while (s > 0 && isWord.test(lineText[s-1])) s--;
+    while (e < lineText.length && isWord.test(lineText[e])) e++;
+    return { token: lineText.slice(s, e), start: s, end: e };
+  }
+  return { token: lineText[i] || '', start: i, end: Math.min(i+1, lineText.length) };
+}
+
+function hintFor(errorMsg, tk, mode) {
+  const m = String(errorMsg || '').toLowerCase();
+  const t = String(tk || '').toLowerCase();
+  // Common helpful hints
+  if (/unexpected identifier/.test(m) && (t === 'let' || t === 'const' || t === 'function')) {
+    return 'Hint: Declare variables/functions in Mode "Program", or convert to an expression.';
+  }
+  if (/unexpected token/.test(m) && /;/.test(errorMsg || '') && mode !== 'program') {
+    return 'Hint: Remove trailing semicolons in expression modes or switch Mode to "Program".';
+  }
+  if (/is not defined/.test(m)) {
+    return 'Hint: Define the variable first (Program mode) or use a literal/Math expression.';
+  }
+  if (/return/.test(m) && mode === 'program') {
+    return 'Hint: Define a global function main(sr) and return a value per tick.';
+  }
+  return '';
+}
+
+function underlineInAce(row, startCol, endCol, type='ace_error-marker') {
+  if (!aceEditor || !AceRange || !lintEnabled) return;
   try {
-    const fn = new Function(
-      't',
+    if (errorMarkerId != null) {
+      aceEditor.getSession().removeMarker(errorMarkerId);
+    }
+    const range = new AceRange(row, startCol, row, Math.max(startCol+1, endCol));
+    errorMarkerId = aceEditor.getSession().addMarker(range, type, 'text', true);
+  } catch (_) {}
+}
+
+function reportCompileError(e, srcText, mode, lineAdjust) {
+  const lc = parseLineColFromStack(e);
+  if (!lintEnabled) return; // UI suppressed
+  if (lc) {
+    const userLine = Math.max(1, lc.line - (lineAdjust|0));
+    const row = Math.max(0, userLine - 1);
+    const col = Math.max(1, lc.column|0);
+    const lines = String(srcText||'').split(/\n/);
+    const lineText = lines[row] ?? '';
+    const { token, start, end } = tokenAt(lineText, col);
+    const baseMsg = e.message;
+    const hint = hintFor(baseMsg, token, mode);
+    const caretLine = `${lineText}`;
+    const caret = `${' '.repeat(Math.max(0, start))}${'^'.repeat(Math.max(1, end-start))}`;
+    const msg = `${baseMsg}${token ? ` near '${token}'` : ''} (line ${userLine}, col ${col}).${hint ? ' ' + hint : ''}\n${caretLine}\n${caret}`;
+    showError(`compilation error: ${msg}`);
+    try {
+      aceEditor?.getSession()?.setAnnotations([
+        { row, column: Math.max(0, col - 1), text: baseMsg, type: 'error' }
+      ]);
+    } catch (_) {}
+    underlineInAce(row, start, end);
+  } else {
+    showError(`compilation error: ${e.message}`);
+  }
+}
+
+function createExprFunc(exprText) {
+  // Attempt 1: treat as a pure expression (strip trailing semicolons which cause "Unexpected token ';'")
+  const exprTrim = (exprText || '').trim().replace(/;+\s*$/g, '');
+  const compileAsExpression = () => new Function(
+    't',
+    'abs','sin','cos','tan','asin','acos','atan','atan2',
+    'log','log2','exp','sqrt','cbrt','pow','hypot',
+    'floor','ceil','round','trunc','sign',
+    'min','max','random','isNaN','PI','E','int',
+    `return (\n${exprTrim}\n);`
+  );
+
+  // Attempt 2: arrow function, e.g. "t => ..." or "(t)=>{...}"
+  const compileAsArrow = () => {
+    const maybeFn = Function(`return (${exprText})`)();
+    if (typeof maybeFn !== 'function') throw new Error('Not an arrow function');
+    return function ArrowCaller(t) { return maybeFn(t); };
+  };
+
+  // Attempt 3: statements – return last assigned variable if any; otherwise look for __ret
+  const compileAsStatements = () => new Function(
+    't',
+    'abs','sin','cos','tan','asin','acos','atan','atan2',
+    'log','log2','exp','sqrt','cbrt','pow','hypot',
+    'floor','ceil','round','trunc','sign',
+    'min','max','random','isNaN','PI','E','int',
+    // Note: no strict mode here to allow legacy octal literals users may paste
+    // expose Math helpers via local consts for convenience (already passed as params)
+    `let __ret;\n` +
+    `${exprText}\n` +
+    // Try to infer last assigned identifier to return
+    `let __lastLine = (${JSON.stringify(exprText)}).trim().split(/\n/).filter(l=>l.trim()).slice(-1)[0]||'';\n` +
+    `let __m = __lastLine.match(/^\s*([\w$]+)\s*=.*;?\s*$/);\n` +
+    `let __name = __m ? __m[1] : '__ret';\n` +
+    `return (typeof eval(__name) !== 'undefined' ? eval(__name) : (typeof __ret !== 'undefined' ? __ret : 0));`
+  );
+
+  let factory;
+  let mode = 'expr';
+  try {
+    factory = compileAsExpression();
+  } catch (e1) {
+    try {
+      const arrowCaller = compileAsArrow();
+      // Wrap the arrow caller in the same signature as expression functions
+      return (tt) => arrowCaller(tt);
+    } catch (e2) {
+      try {
+        factory = compileAsStatements();
+        mode = 'stmts';
+      } catch (e3) {
+        const e = e3 || e2 || e1;
+        reportCompileError(e, exprText, 'expr', 1);
+        throw e;
+      }
+    }
+  }
+
+  // Return a runner that calls the compiled function with math intrinsics
+  return (tt) => factory(
+    tt,
+    Math.abs, Math.sin, Math.cos, Math.tan, Math.asin, Math.acos, Math.atan, Math.atan2,
+    Math.log, Math.log2, Math.exp, Math.sqrt, Math.cbrt, Math.pow, Math.hypot,
+    Math.floor, Math.ceil, Math.round, Math.trunc, Math.sign,
+    Math.min, Math.max, Math.random, isNaN, Math.PI, Math.E, Math.floor
+  );
+}
+
+function createProgramFunc(programText, srSel) {
+  const wrapped = `// ByteLab Program wrapper (non-strict to permit legacy octal literals)\nvar t = 0;\nvar sr = ${Number(srSel)||8000};\ntry {\n${programText}\n} catch (e) { /* allow definitions requiring t on first call */ }\nreturn function (__tt__) {\n  t = __tt__|0;\n  try {\n    // main() should be defined by the user program\n    var v = (typeof main === 'function') ? main(sr) : 0;\n    v = Number(v);\n    if (!Number.isFinite(v)) v = 0;\n    return Math.max(-1, Math.min(1, v));\n  } catch (e) {\n    // If user program uses throw display pattern, relay to UI\n    if (typeof e === 'string') { window._programDisplay = e; return 0; }\n    return 0;\n  }\n};`;
+  try {
+    const boot = new Function(
+      // Provide common math aliases and helpers to the user program scope
       'abs','sin','cos','tan','asin','acos','atan','atan2',
       'log','log2','exp','sqrt','cbrt','pow','hypot',
       'floor','ceil','round','trunc','sign',
-      'min','max','random','isNaN','PI','E',
+      'min','max','random','PI','E','int',
       wrapped
     );
-    return (tt) => fn(
-      tt,
+    const int = (x) => Math.floor(x);
+    const tick = boot(
       Math.abs, Math.sin, Math.cos, Math.tan, Math.asin, Math.acos, Math.atan, Math.atan2,
       Math.log, Math.log2, Math.exp, Math.sqrt, Math.cbrt, Math.pow, Math.hypot,
       Math.floor, Math.ceil, Math.round, Math.trunc, Math.sign,
-      Math.min, Math.max, Math.random, isNaN, Math.PI, Math.E
+      Math.min, Math.max, Math.random, Math.PI, Math.E, int
     );
+    if (typeof tick !== 'function') throw new Error('Program must define main(sr)');
+    return (tt) => tick(tt);
   } catch (e) {
-    const lc = parseLineColFromStack(e);
-    if (lc) {
-      const userLine = Math.max(1, lc.line - 1);
-      const msg = `compilation error: ${e.message} (at line ${userLine}, character ${lc.column})`;
-      showError(msg);
-      try {
-        aceEditor?.getSession()?.setAnnotations([
-          { row: userLine - 1, column: Math.max(0, lc.column - 1), text: e.message, type: 'error' }
-        ]);
-      } catch (_) { /* noop */ }
-    } else {
-      showError(`compilation error: ${e.message}`);
-    }
+    reportCompileError(e, programText, 'program', 0);
     throw e;
   }
 }
@@ -278,6 +421,14 @@ function startProcessor() {
               }
               break;
             }
+            case 'program': {
+              let fv = Number(v);
+              if (!Number.isFinite(fv)) fv = 0;
+              const computed = Math.max(-1, Math.min(1, fv));
+              interpPrev = interpNext; interpNext = computed; interpInit = true;
+              lastSample = computed;
+              break;
+            }
             case 'float':
             default: {
               // Floatbeat: expression should return floats in [-1..1] (preserve smoothness)
@@ -296,7 +447,7 @@ function startProcessor() {
         acc -= 1;
       }
       let s;
-      if (currentMode === 'float') {
+      if (currentMode === 'float' || currentMode === 'program') {
         // Floatbeat always interpolates to reduce stair-stepping, hopefully I simulated this correctly
         s = interpInit ? (interpPrev + (interpNext - interpPrev) * acc) : lastSample;
       } else if (currentMode === 'func') {
@@ -363,7 +514,7 @@ function play() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
   try {
-    exprFunc = createExprFunc(exprText);
+    exprFunc = (currentMode === 'program') ? createProgramFunc(exprText, bbSampleRate) : createExprFunc(exprText);
     clearError();
     aceEditor?.getSession()?.clearAnnotations();
   } catch (e) {
@@ -431,14 +582,15 @@ function initAce() {
     const lines = Math.max(1, screenLen); 
     const padding = 12; 
     const minH = 80;
-    const maxH = Math.floor(window.innerHeight * 0.6); 
+    // Cap editor height to half the viewport to avoid compressing status/error bars
+    const maxH = Math.floor(window.innerHeight * 0.5); 
     const target = Math.min(maxH, Math.max(minH, Math.round(lines * lh + padding)));
     editorEl.style.height = target + 'px';
     aceEditor.resize();
   };
   setTimeout(resizeEditorToContent, 0);
   try {
-    exprFunc = createExprFunc(getExpr());
+    exprFunc = (currentMode === 'program') ? createProgramFunc(getExpr(), bbSampleRate) : createExprFunc(getExpr());
     clearError();
     aceEditor.getSession().clearAnnotations();
   } catch (_) { /* shown already */ }
@@ -451,7 +603,7 @@ function initAce() {
     compileTimer = setTimeout(() => {
       const txt = getExpr();
       try {
-        const compiled = createExprFunc(txt);
+        const compiled = (currentMode === 'program') ? createProgramFunc(txt, bbSampleRate) : createExprFunc(txt);
         lastGoodFunc = compiled;
         exprFunc = compiled;
         clearError();
@@ -465,6 +617,7 @@ function initAce() {
     }, 10);
   });
   window.addEventListener('resize', resizeEditorToContent);
+  try { AceRange = window.ace?.require('ace/range').Range || null; } catch (_) { AceRange = null; }
 }
 
 function getExpr() {
@@ -476,14 +629,19 @@ initAce();
 function setupCanvas(canvas) {
   if (!canvas) return { ctx: null, w: 0, h: 0 };
   const dpr = window.devicePixelRatio || 1;
+  const zoom = getUiZoom();
   const rect = canvas.getBoundingClientRect();
-  const pxw = Math.max(1, Math.floor(rect.width * dpr));
-  const pxh = Math.max(1, Math.floor(rect.height * dpr));
+  // rect.* are in post-zoom CSS pixels; convert back to pre-zoom logical CSS units for stable logic
+  const logicalW = rect.width / zoom;
+  const logicalH = rect.height / zoom;
+  const pxw = Math.max(1, Math.floor(logicalW * dpr));
+  const pxh = Math.max(1, Math.floor(logicalH * dpr));
   canvas.width = pxw;
   canvas.height = pxh;
   const ctx = canvas.getContext('2d');
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  return { ctx, w: rect.width, h: rect.height, pxw, pxh, dpr };
+  // Compensate for zoom so drawing uses logical CSS units regardless of zoom
+  ctx.setTransform(dpr / zoom, 0, 0, dpr / zoom, 0, 0);
+  return { ctx, w: logicalW, h: logicalH, pxw, pxh, dpr };
 }
 
 function startVisualization() {
@@ -632,6 +790,14 @@ function startVisualization() {
         hctx.restore();
       }
     }
+
+    if (window._programDisplay) {
+      if (statusBox) {
+        statusBox.textContent = String(window._programDisplay);
+        statusBox.classList.add('show');
+      }
+      window._programDisplay = '';
+    }
   };
 
   vizRAF = requestAnimationFrame(render);
@@ -699,6 +865,13 @@ if (modeSelect) {
     const v = String(modeSelect.value || '').toLowerCase();
     if (v) currentMode = v;
     syncEffectGroupDisabled();
+    try {
+      const txt = getExpr();
+      exprFunc = (currentMode === 'program') ? createProgramFunc(txt, bbSampleRate) : createExprFunc(txt);
+      clearError();
+      aceEditor?.getSession()?.clearAnnotations();
+      if (isPlaying && !isPaused) updateStatus('playing • mode changed');
+    } catch (_) { /* errors already surfaced */ }
   });
 }
 
@@ -1087,7 +1260,7 @@ if (downsampleSlider) {
 function syncEffectGroupDisabled() {
   const group = document.getElementById('effectGroup');
   const controls = [effectSelect, driveSlider, bitsSlider, downsampleSlider];
-  const disabled = currentMode === 'float' || currentMode === 'func';
+  const disabled = currentMode === 'float' || currentMode === 'func' || currentMode === 'program';
   if (group) {
     if (disabled) group.classList.add('disabled'); else group.classList.remove('disabled');
   }
@@ -1118,6 +1291,31 @@ function setSyntaxStyles(syntaxChoice) {
     document.documentElement.setAttribute('data-syntax', 'tomorrow-night');
   };
   syntaxThemeLink.setAttribute('href', `themes/syntaxes/${fileBase}.css`);
+}
+
+if (lintToggle) {
+  lintEnabled = !!lintToggle.checked;
+  lintToggle.addEventListener('change', () => {
+    lintEnabled = !!lintToggle.checked;
+    if (!lintEnabled) {
+      // Clear any visible diagnostics when turning lint off
+      clearError();
+      try { aceEditor?.getSession()?.clearAnnotations(); } catch (_) {}
+      updateStatus('lint off');
+    } else {
+      updateStatus('lint on');
+      // Optionally trigger a lint pass on enable
+      try {
+        const txt = getExpr();
+        if (txt) {
+          if (currentMode === 'program') createProgramFunc(txt, bbSampleRate); else createExprFunc(txt);
+        } else {
+          clearError();
+          try { aceEditor?.getSession()?.clearAnnotations(); } catch (_) {}
+        }
+      } catch (_) { /* diagnostics already shown */ }
+    }
+  });
 }
 
 if (muteBtn) {
@@ -1242,7 +1440,11 @@ function applySettings(obj) {
   }
   if (typeof obj.uiScale === 'number') {
     document.documentElement.style.zoom = String(obj.uiScale);
+    // Expose ui scale to CSS so layout can compensate for zoom
+    try { document.documentElement.style.setProperty('--ui-scale', String(obj.uiScale)); } catch (_) {}
     if (uiScale) uiScale.value = String(obj.uiScale);
+    // Notify layout listeners so canvases and editor recompute sizes under new zoom
+    window.dispatchEvent(new Event('resize'));
   }
   if (typeof obj.defaultMode === 'string') {
     if (defaultModeSel) defaultModeSel.value = obj.defaultMode;
@@ -1334,3 +1536,19 @@ tabAudio?.addEventListener('click', () => selectSettingsTab(tabAudio, paneAudio)
 const initialSettings = Object.assign({ theme: 'matrix', syntaxTheme: 'detect' }, loadSettings() || {});
 applySettings(initialSettings);
 setSyntaxStyles(initialSettings.syntaxTheme);
+
+// Populate custom titlebar text with app name and version
+try {
+  const { ipcRenderer } = require('electron');
+  ipcRenderer.invoke('get-app-info').then(info => {
+    const el = document.getElementById('appTitle');
+    if (el && info && info.name && info.version) {
+      el.textContent = `${info.name} v${info.version}`;
+    }
+  }).catch(() => {});
+} catch (_) { /* non-electron context */ }
+
+function getUiZoom() {
+  const z = parseFloat(document.documentElement.style.zoom || '1');
+  return Number.isFinite(z) && z > 0 ? z : 1;
+}
