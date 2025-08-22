@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ByteLab — Download</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <meta name="description" content="Download ByteLab for macOS" />
+</head>
+<body>
+  <header class="wrap">
+    <img src="../public/bytelab.png" alt="ByteLab" class="logo" />
+    <div class="titles">
+      <h1>ByteLab</h1>
+      <p class="muted">Bytebeat Studio</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>Download</h2>
+      <p id="status" class="muted">Fetching latest release…</p>
+      <div id="buttons" class="btnrow" hidden></div>
+      <div id="notes" class="notes" hidden></div>
+      <div class="fallback">
+        <p>If this page can’t reach GitHub’s API, you can always download from the Releases page:</p>
+        <p><a class="link" href="https://github.com/ByteLabs-Studio/ByteLab/releases" target="_blank" rel="noreferrer noopener">Open GitHub Releases</a></p>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Install via Homebrew (Cask)</h3>
+      <pre class="code">brew tap ByteLabs-Studio/homebrew-tap
+brew install --cask bytelab</pre>
+      <p class="muted small">Note: the Homebrew cask appears after we publish DMGs to a release and push the cask file to the tap.</p>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <span>© ByteLabs Studio</span>
+    <a class="link" href="https://github.com/ByteLabs-Studio/ByteLab" target="_blank" rel="noreferrer noopener">GitHub</a>
+  </footer>
+
+  <script src="./script.js"></script>
+</body>
+</html>
