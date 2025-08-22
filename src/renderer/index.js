@@ -51,6 +51,20 @@ const setShowSpec = document.getElementById('setShowSpec');
 const setShowHarm = document.getElementById('setShowHarm');
 const setSquareAspect = document.getElementById('setSquareAspect');
 
+// Settings: sidebar tabs and fields
+const tabAppearance = document.getElementById('tabAppearance');
+const tabGeneral = document.getElementById('tabGeneral');
+const tabAccessibility = document.getElementById('tabAccessibility');
+const tabAudio = document.getElementById('tabAudio');
+const paneAppearance = document.getElementById('paneAppearance');
+const paneGeneral = document.getElementById('paneGeneral');
+const paneAccessibility = document.getElementById('paneAccessibility');
+const paneAudio = document.getElementById('paneAudio');
+const themeSelect = document.getElementById('themeSelect');
+const uiScale = document.getElementById('uiScale');
+const defaultModeSel = document.getElementById('defaultMode');
+const defaultHzSel = document.getElementById('defaultHz');
+
 if (!playButton || !editorEl) {
   console.error('Required DOM elements not found: #play or #editor');
 }
@@ -1102,6 +1116,31 @@ function applySettings(obj) {
   if (typeof obj.squareAspect === 'boolean' && oscSquareEl) {
     oscSquareEl.checked = obj.squareAspect; oscSquare = obj.squareAspect;
   }
+  // Theme (placeholder hook)
+  if (typeof obj.theme === 'string' && themeSelect) {
+    themeSelect.value = obj.theme;
+  }
+  // UI scale (use CSS zoom for now)
+  if (typeof obj.uiScale === 'number') {
+    document.documentElement.style.zoom = String(obj.uiScale);
+    if (uiScale) uiScale.value = String(obj.uiScale);
+  }
+  // Defaults for mode and Hz
+  if (typeof obj.defaultMode === 'string') {
+    if (defaultModeSel) defaultModeSel.value = obj.defaultMode;
+    if (modeSelect) {
+      modeSelect.value = obj.defaultMode;
+      modeSelect.dispatchEvent(new Event('change'));
+    }
+  }
+  if (typeof obj.defaultHz === 'string' || typeof obj.defaultHz === 'number') {
+    const val = String(obj.defaultHz);
+    if (defaultHzSel) defaultHzSel.value = val;
+    if (hzSelect) {
+      hzSelect.value = val;
+      hzSelect.dispatchEvent(new Event('change'));
+    }
+  }
 }
 function prefillSettingsModalFromCurrent() {
   if (!settingsModal) return;
@@ -1109,6 +1148,10 @@ function prefillSettingsModalFromCurrent() {
   if (setShowSpec && viewSpecCb) setShowSpec.checked = !!viewSpecCb.checked;
   if (setShowHarm && viewHarmCb) setShowHarm.checked = !!viewHarmCb.checked;
   if (setSquareAspect && oscSquareEl) setSquareAspect.checked = !!oscSquareEl.checked;
+  if (themeSelect) themeSelect.value = themeSelect.value || 'rose';
+  if (uiScale) uiScale.value = String(parseFloat(document.documentElement.style.zoom || '1') || 1);
+  if (defaultModeSel && modeSelect) defaultModeSel.value = modeSelect.value || 'float';
+  if (defaultHzSel && hzSelect) defaultHzSel.value = String(hzSelect.value || '8000');
 }
 function showSettings() {
   prefillSettingsModalFromCurrent();
@@ -1133,12 +1176,28 @@ saveSettingsBtn?.addEventListener('click', () => {
     showSpec: !!setShowSpec?.checked,
     showHarm: !!setShowHarm?.checked,
     squareAspect: !!setSquareAspect?.checked,
+    theme: themeSelect?.value || 'rose',
+    uiScale: parseFloat(uiScale?.value || '1') || 1,
+    defaultMode: defaultModeSel?.value || 'float',
+    defaultHz: defaultHzSel?.value || '44100',
   };
   saveSettings(obj);
   applySettings(obj);
   hideSettings();
   updateStatus('settings saved');
 });
+
+// Tabs logic
+function selectSettingsTab(tabBtn, pane) {
+  const tabs = [tabAppearance, tabGeneral, tabAccessibility, tabAudio];
+  const panes = [paneAppearance, paneGeneral, paneAccessibility, paneAudio];
+  tabs.forEach((t) => t && t.setAttribute('aria-selected', String(t === tabBtn)));
+  panes.forEach((p) => { if (p) p.hidden = p !== pane; });
+}
+tabAppearance?.addEventListener('click', () => selectSettingsTab(tabAppearance, paneAppearance));
+tabGeneral?.addEventListener('click', () => selectSettingsTab(tabGeneral, paneGeneral));
+tabAccessibility?.addEventListener('click', () => selectSettingsTab(tabAccessibility, paneAccessibility));
+tabAudio?.addEventListener('click', () => selectSettingsTab(tabAudio, paneAudio));
 
 // Load and apply saved settings on startup
 applySettings(loadSettings());

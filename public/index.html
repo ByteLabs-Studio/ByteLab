@@ -76,15 +76,22 @@
     .miniSlider::-moz-range-thumb { width:12px; height:12px; border-radius:50%; background:var(--accent2); border:1px solid var(--border); }
     .miniGroup.disabled { opacity:0.5; pointer-events:none; filter:saturate(60%); }
     /* Settings modal */
-    .modalBackdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modalBackdrop { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:none; align-items:center; justify-content:center; z-index:1000; }
     .modalBackdrop.show { display:flex; }
-    .modalCard { width:min(520px, 90vw); background:var(--overlay); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.35); }
-    .modalHeader { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--border); }
-    .modalHeader h3 { margin:0; font-size:14px; color:var(--muted); }
-    .modalBody { padding:12px; display:grid; gap:10px; }
-    .row { display:flex; align-items:center; gap:10px; }
+    .modalCard { width:min(900px, 95vw); height:min(600px, 90vh); background:var(--overlay); border:1px solid var(--border); border-radius:12px; box-shadow:0 12px 36px rgba(0,0,0,0.4); display:flex; flex-direction:column; }
+    .modalHeader { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); }
+    .modalHeader h3 { margin:0; font-size:15px; color:var(--muted); }
+    .modalBody { flex:1; min-height:0; display:grid; grid-template-columns: 220px 1fr; gap:0; }
+    .modalSidebar { border-right:1px solid var(--border); padding:10px; display:flex; flex-direction:column; gap:6px; background:linear-gradient(var(--panel), var(--overlay)); }
+    .settingsTab { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); cursor:pointer; }
+    .settingsTab[aria-selected="true"] { outline:1px solid var(--accent); background:#2a273f; }
+    .modalContent { padding:14px; overflow:auto; }
+    .paneTitle { margin:0 0 8px 0; font-size:14px; color:var(--muted); }
+    .row { display:flex; align-items:center; gap:10px; padding:6px 0; }
     .row label { font-size:13px; color:var(--text); }
+    .row .field { margin-left:auto; }
     .modalFooter { display:flex; justify-content:flex-end; gap:8px; padding:10px 12px; border-top:1px solid var(--border); }
+    .sep { height:1px; background:var(--border); margin:8px 0; }
   </style>
   <!-- Ace editor for in-place syntax highlighting -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
@@ -249,22 +256,62 @@
          <button id="closeSettings" class="btn">✕</button>
        </div>
        <div class="modalBody">
-         <div class="row">
-           <input type="checkbox" id="setShowWave" />
-           <label for="setShowWave">Show Waveform panel by default</label>
-         </div>
-         <div class="row">
-           <input type="checkbox" id="setShowSpec" />
-           <label for="setShowSpec">Show Spectrogram panel by default</label>
-         </div>
-         <div class="row">
-           <input type="checkbox" id="setShowHarm" />
-           <label for="setShowHarm">Show Oscilloscope panel by default</label>
-         </div>
-         <div class="row">
-           <input type="checkbox" id="setSquareAspect" />
-           <label for="setSquareAspect">Square Aspect by default</label>
-         </div>
+         <nav class="modalSidebar" role="tablist" aria-label="Settings Categories">
+           <button class="settingsTab" role="tab" id="tabAppearance" aria-controls="paneAppearance" aria-selected="true">Appearance</button>
+           <button class="settingsTab" role="tab" id="tabGeneral" aria-controls="paneGeneral" aria-selected="false">General</button>
+           <button class="settingsTab" role="tab" id="tabAccessibility" aria-controls="paneAccessibility" aria-selected="false">Accessibility</button>
+           <button class="settingsTab" role="tab" id="tabAudio" aria-controls="paneAudio" aria-selected="false">Audio Parsing</button>
+         </nav>
+         <section class="modalContent">
+           <div id="paneAppearance" role="tabpanel" aria-labelledby="tabAppearance">
+             <h4 class="paneTitle">Appearance</h4>
+             <div class="row">
+               <label for="themeSelect">Theme</label>
+               <select id="themeSelect" class="btn field">
+                 <option value="rose" selected>Rosé Pine (Dark)</option>
+                 <option value="system">System</option>
+               </select>
+             </div>
+           </div>
+           <div id="paneGeneral" role="tabpanel" aria-labelledby="tabGeneral" hidden>
+             <h4 class="paneTitle">General</h4>
+             <div class="row"><input type="checkbox" id="setShowWave" /><label for="setShowWave">Show Waveform panel by default</label></div>
+             <div class="row"><input type="checkbox" id="setShowSpec" /><label for="setShowSpec">Show Spectrogram panel by default</label></div>
+             <div class="row"><input type="checkbox" id="setShowHarm" /><label for="setShowHarm">Show Oscilloscope panel by default</label></div>
+             <div class="row"><input type="checkbox" id="setSquareAspect" /><label for="setSquareAspect">Square Aspect by default</label></div>
+           </div>
+           <div id="paneAccessibility" role="tabpanel" aria-labelledby="tabAccessibility" hidden>
+             <h4 class="paneTitle">Accessibility</h4>
+             <div class="row">
+               <label for="uiScale">UI Scale</label>
+               <input id="uiScale" type="range" min="0.8" max="1.4" step="0.05" value="1" class="field" />
+             </div>
+           </div>
+           <div id="paneAudio" role="tabpanel" aria-labelledby="tabAudio" hidden>
+             <h4 class="paneTitle">Audio Parsing</h4>
+             <div class="row">
+               <label for="defaultMode">Default Mode</label>
+               <select id="defaultMode" class="btn field">
+                 <option value="byte">Bytebeat</option>
+                 <option value="signed">Signed Bytebeat</option>
+                 <option value="float" selected>Floatbeat</option>
+                 <option value="func">Funcbeat</option>
+               </select>
+             </div>
+             <div class="row">
+               <label for="defaultHz">Default Hz</label>
+               <select id="defaultHz" class="btn field">
+                 <option>8000</option>
+                 <option>11025</option>
+                 <option>16000</option>
+                 <option>22050</option>
+                 <option>32000</option>
+                 <option selected>44100</option>
+                 <option>48000</option>
+               </select>
+             </div>
+           </div>
+         </section>
        </div>
        <div class="modalFooter">
          <button id="saveSettings" class="btn">Save</button>
