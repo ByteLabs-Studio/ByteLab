@@ -4,6 +4,8 @@ const stopButton = document.getElementById('stop');
 const tempoSelect = document.getElementById('tempoSelect');
 const hzSelect = document.getElementById('hzSelect');
 const modeSelect = document.getElementById('modeSelect');
+const syntaxThemeSel = document.getElementById('syntaxTheme');
+const syntaxThemeLink = document.getElementById('syntaxThemeLink');
 const volumeSlider = document.getElementById('volumeSlider');
 const viewWaveCb = document.getElementById('viewWave');
 const viewSpecCb = document.getElementById('viewSpec');
@@ -13,6 +15,7 @@ const panelSpec = document.getElementById('panelSpec');
 const panelHarm = document.getElementById('panelHarm');
 const editorEl = document.getElementById('editor');
 const statusEl = document.getElementById('status');
+const statusBox = document.getElementById('statusBox');
 const waveCanvas = document.getElementById('waveCanvas');
 const specCanvas = document.getElementById('specCanvas');
 const harmCanvas = document.getElementById('harmCanvas');
@@ -21,11 +24,13 @@ const captureOscBtn = document.getElementById('captureOsc');
 const uploadMp3Btn = document.getElementById('uploadMp3');
 const mp3FileInput = document.getElementById('mp3FileInput');
 const exactToggle = document.getElementById('exactToggle');
+
 // Oscilloscope controls
 const oscDelayEl = document.getElementById('oscDelay');
 const oscPersistEl = document.getElementById('oscPersist');
 const oscThickEl = document.getElementById('oscThick');
 const oscSquareEl = document.getElementById('oscSquare');
+
 // Wave/Spectrogram controls
 const waveREl = document.getElementById('waveR');
 const waveGEl = document.getElementById('waveG');
@@ -33,6 +38,7 @@ const waveBEl = document.getElementById('waveB');
 const waveColorSwatch = document.getElementById('waveColorSwatch');
 const specContrastEl = document.getElementById('specContrast');
 const specBrightnessEl = document.getElementById('specBrightness');
+
 // Effect controls
 const effectSelect = document.getElementById('effectSelect');
 const driveSlider = document.getElementById('driveSlider');
@@ -65,6 +71,13 @@ const uiScale = document.getElementById('uiScale');
 const defaultModeSel = document.getElementById('defaultMode');
 const defaultHzSel = document.getElementById('defaultHz');
 
+// Utilities group buttons
+const muteBtn = document.getElementById('mute');
+const resetAudioBtn = document.getElementById('resetAudio');
+const copyCodeBtn = document.getElementById('copyCode');
+const randomColorBtn = document.getElementById('randomColor');
+const clearEditorBtn = document.getElementById('clearEditor');
+
 if (!playButton || !editorEl) {
   console.error('Required DOM elements not found: #play or #editor');
 }
@@ -78,26 +91,28 @@ let exprFunc = null;
 let t = 0;
 let isPlaying = false;
 let isPaused = false;
-let bbSampleRate = 8000; // configurable via Hz select
-let tempoFactor = 1;     // 1.0 = normal; controlled by Tempo select
+let bbSampleRate = 8000;
+let tempoFactor = 1;
 let vizRAF = 0;
 let vizResizeHandler = null;
-let desiredVolume = 0.8; // from volume slider
-let currentMode = 'float'; // 'byte' | 'signed' | 'float' | 'func'
+let desiredVolume = 0.8;
+let lastNonZeroVol = 0.8;
+let muted = false;
+let currentMode = 'float';
 let exactMode = false;
 // Oscilloscope state
-let oscDelayVal = 25;     // 0..100 (% of buffer window)
-let oscPersistVal = 28;   // 0..100 (higher -> longer trails)
-let oscThickVal = 1.6;    // px
-let oscSquare = true;     // square aspect
+let oscDelayVal = 25;
+let oscPersistVal = 28;
+let oscThickVal = 1.6;
+let oscSquare = true;
 // Wave/Spectrogram state
 let waveColor = { r: 57, g: 255, b: 20 }; // default neon green
-let specContrastVal = 1.0;  // multiplier
-let specBrightnessVal = 0.2; // additive (0..1)
+let specContrastVal = 1.0;
+let specBrightnessVal = 0.2;
 // Effect state
-let effectType = 'none';   // 'none' | 'distortion' | 'bitcrusher'
-let drive = 0.5;           // 0..1
-let crushBits = 8;         // 4..16
+let effectType = 'none';
+let drive = 0.5;
+let crushBits = 8;
 let downsample = 2;        // 1..16
 let dsCounter = 0;         // sample-hold counter
 let heldSample = 0;
@@ -115,18 +130,27 @@ function updateWaveSwatch() {
 
 function updateStatus(text) {
   if (statusEl) statusEl.textContent = text;
+  if (statusBox) {
+    statusBox.textContent = text;
+    statusBox.classList.add('show');
+    clearTimeout(statusHideTimer);
+    statusHideTimer = setTimeout(() => {
+      statusBox.classList.remove('show');
+    }, 2500);
+  }
 }
+
+let statusHideTimer = 0;
 
 function showError(message) {
   if (!errorBox) return;
   errorBox.textContent = message;
-  errorBox.style.display = 'block';
+  errorBox.classList.add('show');
 }
 
 function clearError() {
   if (!errorBox) return;
-  errorBox.textContent = '';
-  errorBox.style.display = 'none';
+  errorBox.classList.remove('show');
 }
 
 function parseLineColFromStack(err) {
@@ -139,7 +163,6 @@ function parseLineColFromStack(err) {
 function createExprFunc(exprText) {
   const wrapped = `return (\n${exprText}\n);`;
   try {
-    // Provide common Math aliases so users can write abs(), log2(), cbrt(), random(), etc.
     const fn = new Function(
       't',
       'abs','sin','cos','tan','asin','acos','atan','atan2',
@@ -148,7 +171,6 @@ function createExprFunc(exprText) {
       'min','max','random','isNaN','PI','E',
       wrapped
     );
-    // Bind Math functions on call
     return (tt) => fn(
       tt,
       Math.abs, Math.sin, Math.cos, Math.tan, Math.asin, Math.acos, Math.atan, Math.atan2,
@@ -184,10 +206,8 @@ function startProcessor() {
   const bufferSize = 1024;
   processor = audioCtx.createScriptProcessor(bufferSize, 0, 1);
   let lastSample = 0;
-  let lastKind = 'float'; // 'float' | 'signed' | 'byte' (for func mode classification)
-
+  let lastKind = 'float';
   let acc = 0;
-  // For Float/Func modes: keep previous and next sample to linearly interpolate
   let interpPrev = 0;
   let interpNext = 0;
   let interpInit = false;
@@ -195,7 +215,6 @@ function startProcessor() {
   processor.onaudioprocess = (e) => {
     const out = e.outputBuffer.getChannelData(0);
     for (let i = 0; i < out.length; i++) {
-      // compute current step so Tempo/Hz update immediately
       const step = (bbSampleRate * tempoFactor) / audioCtx.sampleRate;
       acc += step;
       while (acc >= 1) {
@@ -276,10 +295,9 @@ function startProcessor() {
         t++;
         acc -= 1;
       }
-      // Compute base sample (interpolate only when appropriate)
       let s;
       if (currentMode === 'float') {
-        // Floatbeat always interpolates to reduce stair-stepping
+        // Floatbeat always interpolates to reduce stair-stepping, hopefully I simulated this correctly
         s = interpInit ? (interpPrev + (interpNext - interpPrev) * acc) : lastSample;
       } else if (currentMode === 'func') {
         // Funcbeat: interpolate only for float outputs; for integer-style, keep steps
@@ -287,15 +305,13 @@ function startProcessor() {
           s = interpInit ? (interpPrev + (interpNext - interpPrev) * acc) : lastSample;
         } else {
           s = lastSample;
-          if (!exactMode) s = Math.tanh(s * 1.5); // same gentle saturation behavior as byte/signed
+          if (!exactMode) s = Math.tanh(s * 1.5); // should be the same gentle saturation behavior as byte/signed
         }
       } else {
-        // Byte/Signed modes
         s = lastSample;
         if (!exactMode) s = Math.tanh(s * 1.5); // gentle saturation for non-exact byte/signed
       }
 
-      // Apply selected effect
       s = applyEffectSample(s);
 
       out[i] = Math.max(-1, Math.min(1, s));
@@ -314,7 +330,6 @@ function startProcessor() {
   analyser.fftSize = 2048;
   analyser.smoothingTimeConstant = 0.2;
 
-  // Connect graph with respect to exact mode
   connectGraph();
 
   startVisualization();
@@ -406,7 +421,22 @@ function initAce() {
     tabSize: 2,
     useSoftTabs: true,
     wrap: true,
-  });
+    scrollPastEnd: 0,
+  }); 
+  aceEditor.renderer.setScrollMargin(0, 0, 0, 0);
+  const resizeEditorToContent = () => {
+    if (!aceEditor || !editorEl) return;
+    const lh = aceEditor.renderer.lineHeight || 16;
+    const screenLen = aceEditor.getSession().getScreenLength();
+    const lines = Math.max(1, screenLen); 
+    const padding = 12; 
+    const minH = 80;
+    const maxH = Math.floor(window.innerHeight * 0.6); 
+    const target = Math.min(maxH, Math.max(minH, Math.round(lines * lh + padding)));
+    editorEl.style.height = target + 'px';
+    aceEditor.resize();
+  };
+  setTimeout(resizeEditorToContent, 0);
   try {
     exprFunc = createExprFunc(getExpr());
     clearError();
@@ -414,20 +444,27 @@ function initAce() {
   } catch (_) { /* shown already */ }
 
   let lastGoodFunc = null;
+  let compileTimer = 0;
   aceEditor.session.on('change', () => {
-    const txt = getExpr();
-    try {
-      const compiled = createExprFunc(txt);
-      lastGoodFunc = compiled;
-      exprFunc = compiled;
-      clearError();
-      aceEditor.getSession().clearAnnotations();
-      if (isPlaying && !isPaused) updateStatus('playing • updated');
-      else if (isPaused) updateStatus('paused • updated');
-    } catch (e) {
-      updateStatus('syntax error (unchanged)');
-    }
+    // Debounce to avoid transient errors while pasting/replacing, originally showed an error for a split second when overwriting an expression
+    clearTimeout(compileTimer);
+    compileTimer = setTimeout(() => {
+      const txt = getExpr();
+      try {
+        const compiled = createExprFunc(txt);
+        lastGoodFunc = compiled;
+        exprFunc = compiled;
+        clearError();
+        aceEditor.getSession().clearAnnotations();
+        if (isPlaying && !isPaused) updateStatus('playing • updated');
+        else if (isPaused) updateStatus('paused • updated');
+      } catch (_) {
+        // Suppress status message on error to avoid flicker
+      }
+      resizeEditorToContent();
+    }, 10);
   });
+  window.addEventListener('resize', resizeEditorToContent);
 }
 
 function getExpr() {
@@ -484,7 +521,6 @@ function startVisualization() {
 
     if (wctx && waveCanvas) {
       if (panelWave && panelWave.style.display === 'none') {
-        // skip drawing when hidden
       } else {
         analyser.getByteTimeDomainData(timeData);
         wctx.clearRect(0, 0, ww, wh);
@@ -492,7 +528,8 @@ function startVisualization() {
         wctx.fillRect(0, 0, ww, wh);
         // Draw filled waveform using min/max vertical bars per pixel column
         const step = timeData.length / ww;
-        wctx.fillStyle = line; // keep same color
+        wctx.fillStyle = line; /* keep same color, maybe I will do this for the spectrogram too, not sure yet since the spectrogram colors are based on the frequency,
+                              so I would need to calculate the average frequency for each column and then apply the same color */
         for (let x = 0; x < ww; x++) {
           const i0 = Math.floor(x * step);
           const i1 = Math.floor((x + 1) * step);
@@ -502,7 +539,6 @@ function startVisualization() {
             if (v < lo) lo = v;
             if (v > hi) hi = v;
           }
-          // Fallback if bin empty
           if (i1 <= i0) {
             const v = timeData[i0] | 0;
             lo = Math.min(lo, v); hi = Math.max(hi, v);
@@ -517,7 +553,6 @@ function startVisualization() {
 
     if (sctx && specCanvas) {
       if (panelSpec && panelSpec.style.display === 'none') {
-        // skip when hidden
       } else {
         analyser.getByteFrequencyData(freqData);
         sctx.save();
@@ -547,18 +582,16 @@ function startVisualization() {
     // Oscilloscope (Lissajous) visualizer: plot s(t - Δ) on X vs s(t) on Y
     if (hctx && harmCanvas) {
       if (panelHarm && panelHarm.style.display === 'none') {
-        // hidden
       } else {
         const Wfull = hpw || harmCanvas.clientWidth || 0;
         const Hfull = hph || harmCanvas.clientHeight || 0;
-        // persistence fade (alpha lower => longer trails). Map 0..100 -> 0.5..0.05
         const fadeAlpha = 0.5 - 0.45 * Math.max(0, Math.min(100, oscPersistVal)) / 100;
         hctx.save();
         hctx.globalCompositeOperation = 'source-over';
         hctx.fillStyle = `rgba(11,10,18,${fadeAlpha.toFixed(3)})`;
         hctx.fillRect(0, 0, Wfull, Hfull);
 
-        // crosshair
+        // crosshair, I might make this configurable, or make it a toggleable feature
         hctx.strokeStyle = harmGrid;
         hctx.lineWidth = 1;
         hctx.beginPath();
@@ -569,11 +602,9 @@ function startVisualization() {
         // fetch time-domain data
         analyser.getByteTimeDomainData(timeData);
         const N = timeData.length;
-        // Delay: map 0..100 -> 0..0.5 of window (0..50%)
         const delayRatio = Math.max(0, Math.min(100, oscDelayVal)) / 200; // 0..0.5
         const lag = Math.max(1, Math.floor(N * delayRatio));
 
-        // Square aspect: draw into a centered square viewport
         const L = oscSquare ? Math.min(Wfull, Hfull) : null;
         const W = oscSquare ? L : Wfull;
         const H = oscSquare ? L : Hfull;
@@ -583,18 +614,16 @@ function startVisualization() {
         const scaleX = (W/2 - pad);
         const scaleY = (H/2 - pad);
 
-        // draw XY polyline
-        // refresh dynamic color each frame (in case sliders moved while paused)
         line = rgbStr(waveColor);
         hctx.strokeStyle = line;
         hctx.shadowColor = line;
         hctx.shadowBlur = 12;
         hctx.lineWidth = oscThickVal;
         hctx.beginPath();
-        const stride = 2; // skip some samples for perf
+        const stride = 2;
         for (let i = 0; i < N - lag; i += stride) {
-          const sY = (timeData[i] - 128) / 128;           // -1..1
-          const sX = (timeData[i + lag] - 128) / 128;     // delayed
+          const sY = (timeData[i] - 128) / 128;
+          const sX = (timeData[i + lag] - 128) / 128;
           const x = offX + Math.floor(W/2 + sX * scaleX) + 0.5;
           const y = offY + Math.floor(H/2 - sY * scaleY) + 0.5;
           if (i === 0) hctx.moveTo(x, y); else hctx.lineTo(x, y);
@@ -635,19 +664,15 @@ function clearVisualizers() {
 
 function updateFilterCutoff() {
   if (!lowpass || !audioCtx) return;
-  // Effective synthesis rate (controls Nyquist of the generated signal)
   const effRate = Math.max(1, bbSampleRate * tempoFactor);
   const nyq = Math.min(audioCtx.sampleRate * 0.49, effRate * 0.5);
   if (exactMode) {
-    // Open filter wide for exact mode
     lowpass.frequency.value = 20000;
   } else {
-    // Gentle margin below Nyquist to suppress aliasing
     lowpass.frequency.value = Math.max(1000, Math.min(18000, nyq * 0.9));
   }
 }
 
-// Wire up Tempo and Hz controls
 if (tempoSelect) {
   tempoSelect.addEventListener('change', () => {
     const v = parseFloat(tempoSelect.value);
@@ -661,14 +686,11 @@ if (hzSelect) {
     if (!Number.isNaN(v) && v > 0) bbSampleRate = v;
     updateFilterCutoff();
   });
-  // initialize from the current select value (default 8000)
   const initialHz = parseInt(hzSelect.value, 10);
   if (!Number.isNaN(initialHz) && initialHz > 0) bbSampleRate = initialHz;
-  // ensure filter matches initial effective rate
   updateFilterCutoff();
 }
 
-// Mode selector wiring
 if (modeSelect) {
   const mv = String(modeSelect.value || '').toLowerCase();
   if (mv) currentMode = mv;
@@ -680,7 +702,6 @@ if (modeSelect) {
   });
 }
 
-// Exact toggle wiring
 if (exactToggle) {
   exactMode = !!exactToggle.checked;
   exactToggle.addEventListener('change', () => {
@@ -691,7 +712,6 @@ if (exactToggle) {
   });
 }
 
-// Oscilloscope controls wiring
 if (oscDelayEl) {
   oscDelayVal = parseInt(oscDelayEl.value, 10) || 25;
   oscDelayEl.addEventListener('input', () => {
@@ -720,7 +740,6 @@ if (oscSquareEl) {
   });
 }
 
-// Wave color wiring
 function clamp255(n){ return Math.max(0, Math.min(255, n|0)); }
 if (waveREl && waveGEl && waveBEl) {
   waveColor.r = clamp255(parseInt(waveREl.value, 10) || 57);
@@ -738,7 +757,6 @@ if (waveREl && waveGEl && waveBEl) {
   waveBEl.addEventListener('input', onWaveColor);
 }
 
-// Spectrogram controls wiring
 if (specContrastEl) {
   const v = parseFloat(specContrastEl.value);
   if (!Number.isNaN(v)) specContrastVal = v;
@@ -756,21 +774,34 @@ if (specBrightnessEl) {
   });
 }
 
-// Volume slider wiring
 if (volumeSlider) {
-  // init desired volume
   const iv = parseFloat(volumeSlider.value);
   if (!Number.isNaN(iv)) desiredVolume = iv;
+  if (muteBtn) {
+    if (desiredVolume <= 0) { muted = true; muteBtn.textContent = 'Unmute'; }
+    else { muted = false; muteBtn.textContent = 'Mute'; }
+  }
   volumeSlider.addEventListener('input', () => {
     const v = parseFloat(volumeSlider.value);
     if (!Number.isNaN(v)) {
       desiredVolume = v;
+      if (v > 0) lastNonZeroVol = v;
       if (masterGain) masterGain.gain.value = v;
+      if (muteBtn) {
+        if (v <= 0 && !muted) {
+          muted = true;
+          muteBtn.textContent = 'Unmute';
+          updateStatus('muted');
+        } else if (v > 0 && muted) {
+          muted = false;
+          muteBtn.textContent = 'Mute';
+          updateStatus('unmuted');
+        }
+      }
     }
   });
 }
 
-// View toggles wiring
 function setPanelVisible(panel, visible) {
   if (!panel) return;
   panel.style.display = visible ? '' : 'none';
@@ -789,23 +820,19 @@ if (viewHarmCb) {
   viewHarmCb.addEventListener('change', () => setPanelVisible(panelHarm, viewHarmCb.checked));
 }
 
-// Capture Oscilloscope image -> clipboard or PNG download
 if (captureOscBtn) {
   captureOscBtn.addEventListener('click', async () => {
     try {
       if (!harmCanvas) return;
-      // ensure there is some content; if panel hidden, make a note
       if (panelHarm && panelHarm.style.display === 'none') {
         updateStatus('Oscilloscope is hidden — showing it helps capture');
       }
-      await new Promise((r) => setTimeout(r, 16)); // let one frame render
+      await new Promise((r) => setTimeout(r, 16));
 
-      // Build a transparent version by removing the background color
       const w = harmCanvas.width, h = harmCanvas.height;
       const srcCtx = harmCanvas.getContext('2d');
       const img = srcCtx.getImageData(0, 0, w, h);
 
-      // Estimate background color by averaging the four corners
       const idx = (x, y) => 4 * (y * w + x);
       const samples = [
         idx(0, 0), idx(w - 1, 0), idx(0, h - 1), idx(w - 1, h - 1),
@@ -816,8 +843,7 @@ if (captureOscBtn) {
       g = Math.round(g / samples.length);
       b = Math.round(b / samples.length);
 
-      // Zero alpha where pixel is close to background (tolerance)
-      const tol = 8; // tweak if needed
+      const tol = 8;
       for (let i = 0; i < img.data.length; i += 4) {
         const dr = img.data[i] - r;
         const dg = img.data[i + 1] - g;
@@ -826,18 +852,15 @@ if (captureOscBtn) {
         if (isBg) img.data[i + 3] = 0;
       }
 
-      // Additional mask: keep only bright-green dominant pixels (scope trace), drop crosshair/grid
       for (let i = 0; i < img.data.length; i += 4) {
         const R = img.data[i], G = img.data[i + 1], B = img.data[i + 2];
-        if (img.data[i + 3] === 0) continue; // already background
-        const gDom = G - Math.max(R, B); // green dominance
-        // keep only strongly green pixels; otherwise make transparent
+        if (img.data[i + 3] === 0) continue;
+        const gDom = G - Math.max(R, B);
         if (gDom < 20 || G < 40) {
           img.data[i + 3] = 0;
         }
       }
 
-      // Put into a transparent offscreen canvas
       const out = document.createElement('canvas');
       out.width = w; out.height = h;
       const octx = out.getContext('2d');
@@ -869,9 +892,7 @@ if (captureOscBtn) {
   });
 }
 
-// ---- MP3 -> Byte array (0..255) converter ----
 async function decodeMp3ArrayBufferToPCM(ab) {
-  // Use a temporary AudioContext to decode MP3
   const ctx = new (window.AudioContext || window.webkitAudioContext)();
   try {
     const audioBuf = await ctx.decodeAudioData(ab);
@@ -880,7 +901,6 @@ async function decodeMp3ArrayBufferToPCM(ab) {
     if (chs <= 1) {
       return { pcm: audioBuf.getChannelData(0), sampleRate: rate };
     }
-    // Average all channels to mono for consistent bytebeat usage
     const len = audioBuf.length;
     const out = new Float32Array(len);
     for (let c = 0; c < chs; c++) {
@@ -934,7 +954,6 @@ function floatToU8(float32) {
 }
 
 function simplifyU8(bytes, maxSamples = 500000) {
-  // Crop to preserve original values and timing; no averaging to avoid timbre changes
   if (bytes.length <= maxSamples) return bytes;
   return bytes.slice(0, maxSamples);
 }
@@ -949,24 +968,19 @@ async function handleMp3File(file) {
     const nearest = exactMode || currentMode === 'byte' || currentMode === 'signed';
     const resampled = resampleMonoFloat32(pcm, sampleRate, targetRate, nearest);
     const rawBytes = floatToU8(resampled);
-    const bytes = simplifyU8(rawBytes, 500000); // cap to keep things light
-    // Store globally to avoid bloating the editor or clipboard
+    const bytes = simplifyU8(rawBytes, 500000);
     window.byteBuffer = bytes;
-    // Choose a snippet that matches the current mode for faithful playback
     let snippet;
     switch (currentMode) {
       case 'byte':
-        // Return 0..255 directly; engine maps to audio
         snippet = 'window.byteBuffer&&window.byteBuffer.length?window.byteBuffer[t%window.byteBuffer.length]:0';
         break;
       case 'signed':
-        // Return -128..127 for signed bytebeat
         snippet = 'window.byteBuffer&&window.byteBuffer.length?(window.byteBuffer[t%window.byteBuffer.length]-128):0';
         break;
       case 'float':
       case 'func':
       default:
-        // Normalized float in [-1,1]
         snippet = '(t)=>{const b=window.byteBuffer;return (!b||!b.length)?0:((b[t%b.length]-128)/128)}';
         break;
     }
@@ -1001,14 +1015,12 @@ function safeDisconnect(node) { try { node.disconnect(); } catch (_) {} }
 
 function connectGraph() {
   if (!processor || !masterGain) return;
-  // clear existing
   try {
     safeDisconnect(processor);
     if (lowpass) safeDisconnect(lowpass);
     safeDisconnect(masterGain);
   } catch (_) {}
   if (exactMode || !lowpass) {
-    // Bypass filter for exact reproduction
     processor.connect(masterGain);
   } else {
     processor.connect(lowpass);
@@ -1021,7 +1033,6 @@ function connectGraph() {
 function applyEffectSample(x) {
   switch (effectType) {
     case 'distortion': {
-      // Map drive 0..1 -> gain 1..20
       const gain = 1 + drive * 19;
       return Math.tanh(x * gain);
     }
@@ -1029,7 +1040,6 @@ function applyEffectSample(x) {
       const bits = Math.max(1, Math.min(24, crushBits|0));
       const step = 1 / (Math.pow(2, bits - 1));
       if (dsCounter <= 0) {
-        // quantize current sample and hold
         heldSample = Math.round(x / step) * step;
         dsCounter = Math.max(1, downsample|0);
       }
@@ -1042,7 +1052,6 @@ function applyEffectSample(x) {
   }
 }
 
-// Effect controls wiring
 if (effectSelect) {
   const v = String(effectSelect.value || 'none');
   effectType = v;
@@ -1075,7 +1084,6 @@ if (downsampleSlider) {
   });
 }
 
-// Enable/disable effect controls based on mode
 function syncEffectGroupDisabled() {
   const group = document.getElementById('effectGroup');
   const controls = [effectSelect, driveSlider, bitsSlider, downsampleSlider];
@@ -1088,7 +1096,112 @@ function syncEffectGroupDisabled() {
   }
 }
 
-// ----- Settings: persistence and modal -----
+function setSyntaxStyles(syntaxChoice) {
+  const uiTheme = document.documentElement.getAttribute('data-theme') || themeSelect?.value || '';
+  let name = syntaxChoice || 'tomorrow-night';
+  if (name === 'detect') name = uiTheme;
+  const fileMap = {
+    rose: 'rosepine',
+  };
+  const fileBase = fileMap[name] || name;
+  if (!name || name === 'system' || name === 'tomorrow-night') {
+    if (syntaxThemeLink) syntaxThemeLink.setAttribute('href', '');
+    document.documentElement.setAttribute('data-syntax', 'tomorrow-night');
+    return;
+  }
+  if (!syntaxThemeLink) return;
+  syntaxThemeLink.onload = () => {
+    document.documentElement.setAttribute('data-syntax', name);
+  };
+  syntaxThemeLink.onerror = () => {
+    syntaxThemeLink.setAttribute('href', '');
+    document.documentElement.setAttribute('data-syntax', 'tomorrow-night');
+  };
+  syntaxThemeLink.setAttribute('href', `themes/syntaxes/${fileBase}.css`);
+}
+
+if (muteBtn) {
+  muteBtn.addEventListener('click', () => {
+    if (!muted) {
+      const v = parseFloat(volumeSlider?.value || '0.8');
+      if (!Number.isNaN(v) && v > 0) lastNonZeroVol = v;
+      if (volumeSlider) {
+        volumeSlider.value = '0';
+        volumeSlider.dispatchEvent(new Event('input'));
+      }
+      if (masterGain) masterGain.gain.value = 0;
+      muted = true;
+      muteBtn.textContent = 'Unmute';
+      updateStatus('muted');
+    } else {
+      const v = Number.isFinite(lastNonZeroVol) ? lastNonZeroVol : 0.8;
+      if (volumeSlider) {
+        volumeSlider.value = String(v);
+        volumeSlider.dispatchEvent(new Event('input'));
+      }
+      if (masterGain) masterGain.gain.value = v;
+      muted = false;
+      muteBtn.textContent = 'Mute';
+      updateStatus('unmuted');
+    }
+  });
+}
+
+if (resetAudioBtn) {
+  resetAudioBtn.addEventListener('click', () => {
+    if (tempoSelect) { tempoSelect.value = '1'; tempoSelect.dispatchEvent(new Event('change')); }
+    if (hzSelect) { hzSelect.value = '44100'; hzSelect.dispatchEvent(new Event('change')); }
+    if (volumeSlider) { volumeSlider.value = '0.8'; volumeSlider.dispatchEvent(new Event('input')); }
+    if (exactToggle) { exactToggle.checked = false; exactToggle.dispatchEvent(new Event('change')); }
+    if (effectSelect) { effectSelect.value = 'none'; effectSelect.dispatchEvent(new Event('change')); }
+    if (driveSlider) { driveSlider.value = '0.5'; driveSlider.dispatchEvent(new Event('input')); }
+    if (bitsSlider) { bitsSlider.value = '8'; bitsSlider.dispatchEvent(new Event('input')); }
+    if (downsampleSlider) { downsampleSlider.value = '2'; downsampleSlider.dispatchEvent(new Event('input')); }
+    updateFilterCutoff();
+    connectGraph();
+    updateStatus('audio controls reset');
+  });
+}
+
+if (copyCodeBtn) {
+  copyCodeBtn.addEventListener('click', async () => {
+    const txt = getExpr();
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(txt);
+      else {
+        const ta = document.createElement('textarea');
+        ta.value = txt; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      updateStatus('code copied');
+    } catch (e) {
+      console.error('Copy failed', e);
+      updateStatus('copy failed');
+    }
+  });
+}
+
+if (randomColorBtn) {
+  randomColorBtn.addEventListener('click', () => {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    if (waveREl) waveREl.value = String(r);
+    if (waveGEl) waveGEl.value = String(g);
+    if (waveBEl) waveBEl.value = String(b);
+    waveColor = { r, g, b };
+    updateWaveSwatch();
+    updateStatus('color randomized');
+  });
+}
+
+if (clearEditorBtn) {
+  clearEditorBtn.addEventListener('click', () => {
+    try { aceEditor?.setValue('', -1); } catch (_) {}
+    updateStatus('editor cleared');
+  });
+}
+
 const SETTINGS_KEY = 'bytebeat.settings.v1';
 function loadSettings() {
   try {
@@ -1102,7 +1215,6 @@ function saveSettings(obj) {
 }
 function applySettings(obj) {
   if (!obj) return;
-  // Panel visibility
   if (typeof obj.showWave === 'boolean' && viewWaveCb) {
     viewWaveCb.checked = obj.showWave; setPanelVisible(panelWave, obj.showWave);
   }
@@ -1112,49 +1224,32 @@ function applySettings(obj) {
   if (typeof obj.showHarm === 'boolean' && viewHarmCb) {
     viewHarmCb.checked = obj.showHarm; setPanelVisible(panelHarm, obj.showHarm);
   }
-  // Square aspect
   if (typeof obj.squareAspect === 'boolean' && oscSquareEl) {
     oscSquareEl.checked = obj.squareAspect; oscSquare = obj.squareAspect;
   }
-  // Hide disabled buttons
   if (typeof obj.hideDisabled === 'boolean') {
-    if (obj.hideDisabled) {
-      document.documentElement.setAttribute('data-hide-disabled', '1');
-    } else {
-      document.documentElement.removeAttribute('data-hide-disabled');
-    }
+    if (obj.hideDisabled) document.documentElement.setAttribute('data-hide-disabled', '');
+    else document.documentElement.removeAttribute('data-hide-disabled');
     if (setHideDisabled) setHideDisabled.checked = obj.hideDisabled;
   }
-  // Theme: set data-theme on documentElement
   if (typeof obj.theme === 'string') {
-    const theme = obj.theme || 'matrix';
-    if (theme === 'system') {
-      document.documentElement.removeAttribute('data-theme');
-    } else {
-      document.documentElement.setAttribute('data-theme', theme);
-    }
-    if (themeSelect) themeSelect.value = theme;
+    document.documentElement.setAttribute('data-theme', obj.theme);
+    if (themeSelect) themeSelect.value = obj.theme;
   }
-  // UI scale (use CSS zoom for now)
+  if (typeof obj.syntaxTheme === 'string') {
+    if (syntaxThemeSel) syntaxThemeSel.value = obj.syntaxTheme;
+    setSyntaxStyles(obj.syntaxTheme);
+  }
   if (typeof obj.uiScale === 'number') {
     document.documentElement.style.zoom = String(obj.uiScale);
     if (uiScale) uiScale.value = String(obj.uiScale);
   }
-  // Defaults for mode and Hz
   if (typeof obj.defaultMode === 'string') {
     if (defaultModeSel) defaultModeSel.value = obj.defaultMode;
-    if (modeSelect) {
-      modeSelect.value = obj.defaultMode;
-      modeSelect.dispatchEvent(new Event('change'));
-    }
   }
   if (typeof obj.defaultHz === 'string' || typeof obj.defaultHz === 'number') {
     const val = String(obj.defaultHz);
     if (defaultHzSel) defaultHzSel.value = val;
-    if (hzSelect) {
-      hzSelect.value = val;
-      hzSelect.dispatchEvent(new Event('change'));
-    }
   }
 }
 function prefillSettingsModalFromCurrent() {
@@ -1168,6 +1263,10 @@ function prefillSettingsModalFromCurrent() {
   if (uiScale) uiScale.value = String(parseFloat(document.documentElement.style.zoom || '1') || 1);
   if (defaultModeSel && modeSelect) defaultModeSel.value = modeSelect.value || 'float';
   if (defaultHzSel && hzSelect) defaultHzSel.value = String(hzSelect.value || '8000');
+  if (syntaxThemeSel) {
+    const saved = loadSettings();
+    syntaxThemeSel.value = (saved && saved.syntaxTheme) || syntaxThemeSel.value || document.documentElement.getAttribute('data-syntax') || 'detect';
+  }
 }
 function showSettings() {
   prefillSettingsModalFromCurrent();
@@ -1176,7 +1275,6 @@ function showSettings() {
 function hideSettings() {
   settingsModal?.classList.remove('show');
 }
-// Wire modal buttons
 openSettingsBtn?.addEventListener('click', showSettings);
 closeSettingsBtn?.addEventListener('click', hideSettings);
 cancelSettingsBtn?.addEventListener('click', hideSettings);
@@ -1194,6 +1292,7 @@ saveSettingsBtn?.addEventListener('click', () => {
     squareAspect: !!setSquareAspect?.checked,
     hideDisabled: !!setHideDisabled?.checked,
     theme: themeSelect?.value || 'matrix',
+    syntaxTheme: syntaxThemeSel?.value || 'tomorrow-night',
     uiScale: parseFloat(uiScale?.value || '1') || 1,
     defaultMode: defaultModeSel?.value || 'float',
     defaultHz: defaultHzSel?.value || '44100',
@@ -1211,6 +1310,7 @@ applySettingsBtn?.addEventListener('click', () => {
     squareAspect: !!setSquareAspect?.checked,
     hideDisabled: !!setHideDisabled?.checked,
     theme: themeSelect?.value || 'matrix',
+    syntaxTheme: syntaxThemeSel?.value || 'tomorrow-night',
     uiScale: parseFloat(uiScale?.value || '1') || 1,
     defaultMode: defaultModeSel?.value || 'float',
     defaultHz: defaultHzSel?.value || '44100',
@@ -1220,7 +1320,6 @@ applySettingsBtn?.addEventListener('click', () => {
   updateStatus('settings applied');
 });
 
-// Tabs logic
 function selectSettingsTab(tabBtn, pane) {
   const tabs = [tabAppearance, tabGeneral, tabAccessibility, tabAudio];
   const panes = [paneAppearance, paneGeneral, paneAccessibility, paneAudio];
@@ -1232,6 +1331,6 @@ tabGeneral?.addEventListener('click', () => selectSettingsTab(tabGeneral, paneGe
 tabAccessibility?.addEventListener('click', () => selectSettingsTab(tabAccessibility, paneAccessibility));
 tabAudio?.addEventListener('click', () => selectSettingsTab(tabAudio, paneAudio));
 
-// Load and apply saved settings on startup
-const initialSettings = loadSettings() || { theme: 'matrix' };
+const initialSettings = Object.assign({ theme: 'matrix', syntaxTheme: 'detect' }, loadSettings() || {});
 applySettings(initialSettings);
+setSyntaxStyles(initialSettings.syntaxTheme);
