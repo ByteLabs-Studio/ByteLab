@@ -1,0 +1,16 @@
+#editor.ace_editor.ace-tomorrow-night { color: var(--text); background: var(--panel); }
+.ace-tomorrow-night .ace_cursor { color: var(--accent); }
+.ace-tomorrow-night .ace_selection { background: rgba(148, 226, 213, 0.22); } /* teal */
+.ace-tomorrow-night .ace_comment { color: #9399b2; font-style: italic; } /* overlay2 */
+.ace-tomorrow-night .ace_keyword { color: #cba6f7; } /* mauve */
+.ace-tomorrow-night .ace_string  { color: #f9e2af; } /* yellow */
+.ace-tomorrow-night .ace_numeric,
+.ace-tomorrow-night .ace_constant.ace_numeric { color: #94e2d5; } /* teal */
+.ace-tomorrow-night .ace_constant,
+.ace-tomorrow-night .ace_constant.ace_language { color: #f38ba8; } /* red */
+.ace-tomorrow-night .ace_support.ace_function,
+.ace-tomorrow-night .ace_entity.ace_name.ace_function { color: #89b4fa; } /* blue */
+.ace-tomorrow-night .ace_variable,
+.ace-tomorrow-night .ace_operator,
+.ace-tomorrow-night .ace_paren,
+.ace-tomorrow-night .ace_punctuation { color: #cdd6f4; }

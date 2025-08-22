@@ -1,0 +1,16 @@
+#editor.ace_editor.ace-tomorrow-night { color: #00FF66; background: var(--panel); }
+.ace-tomorrow-night .ace_cursor { color: #00ff99; }
+.ace-tomorrow-night .ace_selection { background: rgba(0,255,102,0.20); }
+.ace-tomorrow-night .ace_comment { color: #00bb55; font-style: italic; }
+.ace-tomorrow-night .ace_keyword { color: #00ffaa; }
+.ace-tomorrow-night .ace_string  { color: #66ffcc; }
+.ace-tomorrow-night .ace_numeric,
+.ace-tomorrow-night .ace_constant.ace_numeric { color: #55ff99; }
+.ace-tomorrow-night .ace_constant,
+.ace-tomorrow-night .ace_constant.ace_language { color: #22ff88; }
+.ace-tomorrow-night .ace_support.ace_function,
+.ace-tomorrow-night .ace_entity.ace_name.ace_function { color: #88ffdd; }
+.ace-tomorrow-night .ace_variable,
+.ace-tomorrow-night .ace_operator,
+.ace-tomorrow-night .ace_paren,
+.ace-tomorrow-night .ace_punctuation { color: #00FF66; }
