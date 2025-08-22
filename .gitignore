@@ -5,8 +5,20 @@ yarn-debug.log*
 yarn-error.log*
 
 # Build output
-# dist/ # Needs to be pushed for GitHub releases
+dist/
 out/
+# Electron builder artifacts
+*.dmg
+*.blockmap
+*.zip
+*.7z
+*.exe
+*.AppImage
+*.deb
+*.rpm
+*.snap
+dist/*.yml
+dist/*.yaml
 
 # macOS system files
 .DS_Store
