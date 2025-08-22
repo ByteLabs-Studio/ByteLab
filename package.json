@@ -16,6 +16,13 @@
         "category": "public.app-category.utilities",
         "target": "dmg",
         "icon": "public/bytelab.icns"
-      }
+      },
+      "win": {
+        "target": "zip"
+      },
+      "linux": {
+        "target": "zip"
+      },
+      "publish": ["github"]
     }
   }
