@@ -1,0 +1,31 @@
+theme = "rose_pine"
+
+[editor]
+bufferline = "multiple"
+color-modes = true
+end-of-line-diagnostics = "hint"
+insert-final-newline = false
+line-number = "relative"
+mouse = false
+popup-border = "all"
+scrolloff = 100
+
+[editor.cursor-shape]
+insert = "bar"
+
+[editor.indent-guides]
+character = "╎"
+render = true
+skip-levels = 1
+
+[editor.inline-diagnostics]
+cursor-line = "warning"
+
+[editor.lsp]
+display-inlay-hints = true
+display-progress-messages = true
+
+[editor.statusline]
+center = ["file-name"]
+left = ["mode", "file-modification-indicator", "spinner"]
+right = ["diagnostics", "file-type", "file-encoding", "file-line-ending"]

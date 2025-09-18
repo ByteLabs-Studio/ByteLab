@@ -42,6 +42,7 @@
             gtk3
             libsoup_3
             deno
+            helix
           ]
           ++ lib.optionals pkgs.stdenv.isLinux [
             webkitgtk_4_1
