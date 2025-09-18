@@ -1,4 +1,3 @@
 = ByteLab
 
-image:./public/bl.png
-
+image:./public/bl.png[ByteLab Logo]
