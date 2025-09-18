@@ -17,6 +17,6 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [package]
 name = "bytelab"
 version = "0.1.0"
-description = "A Tauri App"
+description = "ByteLab"
 authors = ["you"]
 edition = "2021"
