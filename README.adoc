@@ -1,6 +1,7 @@
 = ByteLab
 
 image:./public/bl.png[ByteLab Logo,150,150]
+
 ByteLab is a Open-soruce tool for making Byte music.
 
 == Contribution
@@ -12,6 +13,7 @@ and not tryint to litter the codebase, with horrible formatting techniques
 or random information files.
 
 What is expected to be used to contribute is the following:
+
 * clippy
 * rust-analyser
 * rustfmt
