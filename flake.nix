@@ -20,13 +20,14 @@
             rust-analyzer
             clippy
             pkg-config
-            alsa-lib
             gdk-pixbuf
             atk
             gtk3
             libsoup_3
-            webkitgtk_4_1
             deno
+          ] ++ lib.optionals pkgs.stdenv.isLinux [
+            webkitgtk_4_1
+            alsa-lib
           ];
 
           runtimeLibs = lib.optionals stdenv.isLinux [
