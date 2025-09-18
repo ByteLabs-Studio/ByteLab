@@ -14,7 +14,7 @@
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   # ...
-  name= "help";
+  name = "help";
   pname = "bytelab";
 
   cargoHash = lib.fakeHash;

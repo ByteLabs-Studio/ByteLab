@@ -2,13 +2,30 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
   };
   outputs =
-    { nixpkgs, flake-utils, ... }:
+    {
+      nixpkgs,
+      flake-utils,
+      treefmt-nix,
+      ...
+    }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs { inherit system; };
+
+        formatters =
+          (treefmt-nix.lib.evalModule pkgs (_: {
+            projectRootFile = ".git/config";
+            programs = {
+              nixfmt.enable = true;
+              nixf-diagnose.enable = true;
+              rustfmt.enable = true;
+              toml-sort.enable = true;
+            };
+          })).config.build;
       in
       with pkgs;
       {
@@ -25,7 +42,8 @@
             gtk3
             libsoup_3
             deno
-          ] ++ lib.optionals pkgs.stdenv.isLinux [
+          ]
+          ++ lib.optionals pkgs.stdenv.isLinux [
             webkitgtk_4_1
             alsa-lib
           ];
@@ -46,13 +64,21 @@
           ];
 
           LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeLibs;
-          shellHook = ''
-            $(awk -F: -v user=$USER 'user == $1 { print $NF }' /etc/passwd)
-            exit
-          '';
+          shellHook =
+            if !stdenv.isDarwin then
+              ''
+                #!/bin/bash
+                $(awk -F: -v user=$USER 'user == $1 {print $NF}' /etc/passwd)
+                exit
+              ''
+            else
+              ''
+                $(dscl . -read $HOME 'UserShell' | grep --only-matching '/.*')
+                exit
+              '';
         };
 
-        formatter = nixfmt-tree;
+        formatter = formatters.wrapper;
       }
     );
 }
