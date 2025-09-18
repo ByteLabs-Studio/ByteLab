@@ -1,3 +1,31 @@
 = ByteLab
 
-image:./public/bl.png[ByteLab Logo,100,100]
+image:./public/bl.png[ByteLab Logo,150,150]
+ByteLab is a Open-soruce tool for making Byte music.
+
+== Contribution
+
+For contributing to this project it is recommended to use something
+minimal. The issue with something like VSCode, or Windsurf, or whatever
+the "Cool Kids" use, they suck when it comes to project sturcture intergrity
+and not tryint to litter the codebase, with horrible formatting techniques
+or random information files.
+
+What is expected to be used to contribute is the following:
+* clippy
+* rust-analyser
+* rustfmt
+* treefmt(-nix)
+* nil
+* nixd
+* rustc (with cargo)
+* deno
+* pkg-config (obviously)
+
+We also atleasy highly motivate the contributers to leverage
+the power of nix, and use the exact same versions of everything
+we use.
+
+== Licensing
+
+This project is *not licensed yet*, have fun. 
