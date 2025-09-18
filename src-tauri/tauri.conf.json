@@ -26,6 +26,7 @@
     "targets": "all",
     "icon": [
       "../public/bytelab.png",
+      "../public/bytelab.ico",
       "../public/bytelab.icns"
     ]
   }
