@@ -47,6 +47,7 @@
             pkg-config
             gdk-pixbuf
             rust-analyzer
+            typescript-language-server
           ]
           ++ lib.optionals pkgs.stdenv.isLinux [
             webkitgtk_4_1
