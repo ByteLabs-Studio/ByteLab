@@ -1,37 +1,24 @@
-# Dependencies
-node_modules/
+# Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Build output
-dist/
-out/
-# Electron builder artifacts
-*.dmg
-*.blockmap
-*.zip
-*.7z
-*.exe
-*.AppImage
-*.deb
-*.rpm
-*.snap
-dist/*.yml
-dist/*.yaml
+node_modules
+dist
+dist-ssr
+*.local
 
-# macOS system files
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-.AppleDouble
-.LSOverride
-
-# IDE/editor configs
-.vscode/
-.idea/
-*.swp
-
-# Logs
-*.log
-
-# Env files (if you add them later)
-.env
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
