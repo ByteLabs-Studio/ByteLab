@@ -32,19 +32,21 @@
         devShells.default = mkShell rec {
           buildInputs = [
             nil
-            nixd
-            rustc
-            cargo
-            rustfmt
-            rust-analyzer
-            clippy
-            pkg-config
-            gdk-pixbuf
             atk
             gtk3
-            libsoup_3
+            nixd
             deno
+            tokei
             helix
+            rustc
+            cargo
+            clippy
+            rustfmt
+            onefetch
+            libsoup_3
+            pkg-config
+            gdk-pixbuf
+            rust-analyzer
           ]
           ++ lib.optionals pkgs.stdenv.isLinux [
             webkitgtk_4_1
