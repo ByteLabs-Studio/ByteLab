@@ -31,6 +31,8 @@
       {
         devShells.default = mkShell rec {
           buildInputs = [
+            nil
+            nixd
             rustc
             cargo
             rustfmt
