@@ -30,4 +30,4 @@ we use.
 
 == Licensing
 
-This project is *not licensed yet*, have fun. 
+This project is under link:./LICENSE.txt[the GNU Affero General Public License v3.0]
