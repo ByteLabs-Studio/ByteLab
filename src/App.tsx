@@ -1,7 +1,3 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-
 function App() {
   return (
     <main className="bg-zinc-900 flex flex-col justify-center text-zinc-100 h-screen overflow-hidden">

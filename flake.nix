@@ -33,6 +33,7 @@
           buildInputs = [
             nil
             atk
+            bun
             gtk3
             nixd
             deno
@@ -41,8 +42,10 @@
             rustc
             cargo
             clippy
+            librsvg
             rustfmt
             onefetch
+            superhtml
             libsoup_3
             pkg-config
             gdk-pixbuf
