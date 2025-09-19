@@ -12,10 +12,10 @@ args = ["lsp"]
 [language-server.deno-lsp.config.deno]
 enable = true
 unstable = true
-suggest.imports.hosts = { "https://deno.land" = true }
+inlayHints.enumMemberValues.enabled = true
+inlayHints.functionLikeReturnTypes.enabled = true
 inlayHints.parameterNames.enabled = "all"
 inlayHints.parameterTypes.enabled = true
+inlayHints.propertyDeclarationTypes.enabled = true
 inlayHints.variableTypes.enabled = true
-inlayHints.propertyDeclarationTypes.enabled  = true
-inlayHints.functionLikeReturnTypes.enabled = true
-inlayHints.enumMemberValues.enabled = true
+suggest.imports.hosts = {"https://deno.land" = true}
