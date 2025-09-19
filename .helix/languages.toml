@@ -1,9 +1,15 @@
 [[language]]
+name = "rust"
+indent = {unit = "    ", tab-width = 2}
+auto-format = true
+
+[[language]]
 name = "typescript"
 shebangs = ["deno"]
 roots = ["deno.json", "deno.jsonc", "package.json"]
 auto-format = true
 language-servers = ["deno-lsp"]
+indent = {tab-width = 2, unit = " "}
 
 [language-server.deno-lsp]
 command = "deno"

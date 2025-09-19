@@ -3,18 +3,23 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
   outputs =
     {
       nixpkgs,
       flake-utils,
       treefmt-nix,
+      rust-overlay,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import rust-overlay) ];
+        };
 
         formatters =
           (treefmt-nix.lib.evalModule pkgs (_: {
@@ -24,6 +29,14 @@
               nixf-diagnose.enable = true;
               rustfmt.enable = true;
               toml-sort.enable = true;
+            };
+            settings.formatter.rustfmt = {
+              unstable-features = true;
+              tab_spaces = 2;
+              trailing_semicolon = false;
+              style_edition = "2024";
+              use_try_shorthand = true;
+              wrap_comments = true;
             };
           })).config.build;
       in
@@ -39,8 +52,9 @@
             deno
             tokei
             helix
-            rustc
-            cargo
+            # rustc
+            # cargo
+            rust-bin.nightly.latest.default
             clippy
             librsvg
             rustfmt
