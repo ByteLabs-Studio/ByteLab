@@ -102,7 +102,7 @@
               '';
         };
 
-        packages.${system}.default = (pkgs.callPackage ./package.nix { inherit pkgs; });
+        packages.default = pkgs.callPackage ./src-tauri/package.nix { inherit pkgs; };
         formatter = formatters.wrapper;
       } 
     );
