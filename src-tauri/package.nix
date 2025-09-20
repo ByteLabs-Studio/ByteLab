@@ -3,16 +3,6 @@
   ...
 }:
 
-let
-  bunDeps = import ../bun-packages.nix { inherit pkgs; };
-
-  nodeEnv = pkgs.buildNpmPackage {
-    name = "bytelab-node-env";
-    src = ../.;
-    packageJSON = ../package.json;
-    inherit bunDeps;
-  };
-in
 pkgs.stdenv.mkDerivation {
   pname = "bytelab";
   version = "0.1.0";
@@ -25,17 +15,29 @@ pkgs.stdenv.mkDerivation {
     rustc
     pkg-config
     cargo-tauri
+    makeWrapper
   ];
 
   buildPhase = ''
-    export PATH=${nodeEnv}/bin:$PATH
+    export HOME=$TMPDIR
+    export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+    export NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
+
+    bun install --frozen-lockfile
     bun run build
     cargo tauri build
   '';
 
-  installPhase = ''
+  installPhase = if pkgs.stdenv.isLinux then ''
+    #!/bin/bash
     mkdir -p $out/bin $out/Applications
-    cp -r target/release/bundle/macos/ByteLab.app $out/Applications
+    cp -r src-tauri/target/release/bundle/macos/ByteLab.app $out/Applications
     makeWrapper "$out/Applications/ByteLab.app/Contents/MacOS/ByteLab" "$out/bin/bytelab"
+  ''
+  else ''
+    #!/bin/bash
+    mkdir -p $out/bin
+
+    cp -r src-tauri/target/release/
   '';
 }
