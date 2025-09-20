@@ -14,7 +14,7 @@
       rust-overlay,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachSystem [ "aarch64-linux" "aarch64-darwin" "x86_64-linux" ] (
       system:
       let
         pkgs = import nixpkgs {
@@ -102,7 +102,8 @@
               '';
         };
 
+        packages.${system}.default = (pkgs.callPackage ./package.nix { inherit pkgs; });
         formatter = formatters.wrapper;
-      }
+      } 
     );
 }
