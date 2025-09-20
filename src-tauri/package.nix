@@ -18,35 +18,19 @@ rustPlatform.buildRustPackage (finalAttrs: {
     hash = "sha256-BKQ6ejssLBoN64yUxBCv8rzo/F0CaDj71Av4u1ZP50Q=";
   };
 
-  nativeBuildInputs = with pkgs; [
-    bun
-    cargo
-    rustc
-    nodejs
-    pkg-config
-    makeWrapper
-    cargo-tauri
-    npmHooks.npmConfigHook
-  ];
+  nativeBuildInputs =
+    [
+      bun
+      nodejs
+      pkg-config
+      cargo-tauri.hook
+      npmHooks.npmConfigHook
+    ] ++ lib.optionals stdenv.isLinux [ wrapGAppsHook3 ];
 
-  buildPhase = ''
-    #!/bin/bash
-    bun run build
-    cargo tauri build
-  '';
-
-  installPhase =
-    if pkgs.stdenv.isDarwin then
-      ''
-        #!/bin/bash
-        mkdir -p $out/bin $out/Applications
-        cp -r src-tauri/target/release/bundle/macos/ByteLab.app $out/Applications
-        makeWrapper "$out/Applications/ByteLab.app/Contents/MacOS/ByteLab" "$out/bin/bytelab"
-      ''
-    else
-      ''
-        #!/bin/bash
-        mkdir -p $out/bin
-        cp -r src-tauri/target/release/bytelab $out/bin/bytelab
-      '';
+    buildInputs =  lib.optionals stdenv.isLinux [
+      glibc
+      webkitgtk_4_1
+      libsoup_3
+      gtk3
+    ];
 })
