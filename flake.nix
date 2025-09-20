@@ -104,6 +104,6 @@
 
         packages.default = pkgs.callPackage ./src-tauri/package.nix { inherit pkgs; };
         formatter = formatters.wrapper;
-      } 
+      }
     );
 }
