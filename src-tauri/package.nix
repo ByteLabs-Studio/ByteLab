@@ -2,6 +2,17 @@
   pkgs ? import <nixpkgs> { },
   ...
 }:
+
+let
+  bunDeps = import ../bun-packages.nix { inherit pkgs; };
+
+  nodeEnv = pkgs.buildNpmPackage {
+    name = "bytelab-node-env";
+    src = ../.;
+    packageJSON = ../package.json;
+    inherit bunDeps;
+  };
+in
 pkgs.stdenv.mkDerivation {
   pname = "bytelab";
   version = "0.1.0";
@@ -16,30 +27,15 @@ pkgs.stdenv.mkDerivation {
     cargo-tauri
   ];
 
-  fetchPhase = ''
-    cd $src
-    bun install
-    cd src-tauri
-    cargo vendor
-  '';
-
   buildPhase = ''
-    # cd src-tauri
+    export PATH=${nodeEnv}/bin:$PATH
+    bun run build
     cargo tauri build
   '';
 
-  installPhase =
-    if pkgs.stdenv.isDarwin then
-      ''
-        #!/bin/bash
-        mkdir -p $out/bin
-        mkdir -p $out/Applications
-        cp -r target/release/bundle/macos/ByteLab.app $out/Applications
-        makeWrapper "$out/Applications/ByteLab.app/Contents/MacOS/ByteLab" \
-          "$out/bin/bytelab"
-      ''
-    else
-      ''
-        #!/bin/bash
-      '';
+  installPhase = ''
+    mkdir -p $out/bin $out/Applications
+    cp -r target/release/bundle/macos/ByteLab.app $out/Applications
+    makeWrapper "$out/Applications/ByteLab.app/Contents/MacOS/ByteLab" "$out/bin/bytelab"
+  '';
 }
