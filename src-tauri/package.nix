@@ -33,4 +33,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
       libsoup_3
       gtk3
     ];
+
+  postInstall = lib.strings.optionalString stdenv.isDarwin ''
+    ln -sf $out/Applications/ByteLab.app/Contents/MacOS/bytelab $out/bin/bytelab
+  '';
 })
