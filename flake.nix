@@ -4,6 +4,7 @@
     flake-utils.url = "github:numtide/flake-utils";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     rust-overlay.url = "github:oxalica/rust-overlay";
+    naersk.url = "github:nix-community/naersk";
   };
   outputs =
     {
@@ -52,19 +53,19 @@
             deno
             tokei
             helix
-            # rustc
-            # cargo
-            rust-bin.nightly.latest.default
             clippy
             librsvg
             rustfmt
             onefetch
             superhtml
             libsoup_3
+            xdg-utils
             pkg-config
             gdk-pixbuf
+            cargo-tauri
             rust-analyzer
             typescript-language-server
+            rust-bin.nightly.latest.default
           ]
           ++ lib.optionals pkgs.stdenv.isLinux [
             webkitgtk_4_1
