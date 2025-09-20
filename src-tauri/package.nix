@@ -35,15 +35,18 @@ rustPlatform.buildRustPackage (finalAttrs: {
     cargo tauri build
   '';
 
-  installPhase = if pkgs.stdenv.isDarwin then ''
-    #!/bin/bash
-    mkdir -p $out/bin $out/Applications
-    cp -r src-tauri/target/release/bundle/macos/ByteLab.app $out/Applications
-    makeWrapper "$out/Applications/ByteLab.app/Contents/MacOS/ByteLab" "$out/bin/bytelab"
-  ''
-  else ''
-    #!/bin/bash
-    mkdir -p $out/bin
-    cp -r src-tauri/target/release/bytelab $out/bin/bytelab
-  '';
+  installPhase =
+    if pkgs.stdenv.isDarwin then
+      ''
+        #!/bin/bash
+        mkdir -p $out/bin $out/Applications
+        cp -r src-tauri/target/release/bundle/macos/ByteLab.app $out/Applications
+        makeWrapper "$out/Applications/ByteLab.app/Contents/MacOS/ByteLab" "$out/bin/bytelab"
+      ''
+    else
+      ''
+        #!/bin/bash
+        mkdir -p $out/bin
+        cp -r src-tauri/target/release/bytelab $out/bin/bytelab
+      '';
 })
