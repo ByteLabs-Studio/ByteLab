@@ -28,7 +28,7 @@ pkgs.stdenv.mkDerivation {
     cargo tauri build
   '';
 
-  installPhase = if pkgs.stdenv.isLinux then ''
+  installPhase = if pkgs.stdenv.isDarwin then ''
     #!/bin/bash
     mkdir -p $out/bin $out/Applications
     cp -r src-tauri/target/release/bundle/macos/ByteLab.app $out/Applications
@@ -38,6 +38,6 @@ pkgs.stdenv.mkDerivation {
     #!/bin/bash
     mkdir -p $out/bin
 
-    cp -r src-tauri/target/release/
+    cp -r src-tauri/target/release/bytelab $out/bin/bytelab
   '';
 }
