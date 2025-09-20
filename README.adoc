@@ -4,6 +4,14 @@ image:./public/bl.png[ByteLab Logo,150,150]
 
 ByteLab is a Open-soruce tool for making Byte music.
 
+== Support
+
+=== macOS
+
+The macOS version is highly reccomended by Tauri to be `10.15`, Catalina. We have also taken into consideration the support
+for people below Catalina, but have realised this could cause more bad than good to support a version which we can not even test,
+or have a high confidence level to support.
+
 == Contribution
 
 For contributing to this project it is recommended to use something
