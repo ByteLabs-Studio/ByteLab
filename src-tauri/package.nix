@@ -24,16 +24,13 @@ rustPlatform.buildRustPackage (finalAttrs: {
     rustc
     nodejs
     pkg-config
-    cargo-tauri
     makeWrapper
+    cargo-tauri
     npmHooks.npmConfigHook
   ];
 
   buildPhase = ''
-    # export HOME=$TMPDIR
-    # export SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
-    # export NIX_SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt
-
+    #!/bin/bash
     bun run build
     cargo tauri build
   '';
@@ -47,7 +44,6 @@ rustPlatform.buildRustPackage (finalAttrs: {
   else ''
     #!/bin/bash
     mkdir -p $out/bin
-
     cp -r src-tauri/target/release/bytelab $out/bin/bytelab
   '';
 })
