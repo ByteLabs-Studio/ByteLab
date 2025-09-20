@@ -35,6 +35,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     ];
 
   postInstall = lib.strings.optionalString stdenv.isDarwin ''
+    mkdir $out/bin
     ln -sf $out/Applications/ByteLab.app/Contents/MacOS/bytelab $out/bin/bytelab
   '';
 })
