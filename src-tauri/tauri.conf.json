@@ -23,14 +23,15 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "appimage", "msi"],
     "icon": [
       "../public/bytelab.png",
       "../public/bytelab.ico",
       "../public/bytelab.icns"
     ],
     "macOS": {
-      "minimumSystemVersion": "10.15"
+      "minimumSystemVersion": "10.15",
+      "signingIdentity": null
     }
   }
 }
