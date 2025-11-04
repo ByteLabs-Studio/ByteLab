@@ -1,0 +1,12 @@
+[package]
+name = "bytelabs"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "bytelabs"
+path = "src/main.rs"
+
+[dependencies]
+gpui.workspace = true

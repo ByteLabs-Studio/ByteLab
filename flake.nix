@@ -47,10 +47,8 @@
           buildInputs = [
             nil
             atk
-            bun
             gtk3
             nixd
-            deno
             tokei
             helix
             clippy

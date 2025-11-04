@@ -1,0 +1,8 @@
+[workspace]
+members = ["crates/bytelabs"]
+default-members = ["crates/bytelabs"]
+resolver = "2"
+
+[workspace.dependencies]
+bytelabs = { path = "crates/bytelabs" }
+gpui = { git = "https://github.com/zed-industries/zed", features = ["runtime_shaders"] }

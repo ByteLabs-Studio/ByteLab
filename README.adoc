@@ -28,8 +28,7 @@ What is expected to be used to contribute is the following:
 * treefmt(-nix)
 * nil
 * nixd
-* rustc (with cargo)
-* deno
+* cargo
 * pkg-config (obviously)
 
 We also atleasy highly motivate the contributers to leverage
