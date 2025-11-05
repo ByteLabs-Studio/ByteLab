@@ -6,3 +6,8 @@ resolver = "2"
 [workspace.dependencies]
 bytelabs = { path = "crates/bytelabs" }
 gpui = { git = "https://github.com/zed-industries/zed", features = ["runtime_shaders"] }
+
+
+[workspace.package]
+publish = false
+edition = "2024"

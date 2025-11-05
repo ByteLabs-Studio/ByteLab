@@ -60,7 +60,7 @@
             xdg-utils
             pkg-config
             gdk-pixbuf
-            cargo-tauri
+            cargo-bundle
             rust-analyzer
             typescript-language-server
             rust-bin.nightly.latest.default
