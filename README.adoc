@@ -8,17 +8,15 @@ ByteLabs is a Open-soruce tool for making Byte music.
 
 === macOS
 
-The macOS version is highly reccomended by Tauri to be `10.15`, Catalina. We have also taken into consideration the support
+the macOS minimum version is `10.15.7`, Catalina. We have also taken into consideration the support
 for people below Catalina, but have realised this could cause more bad than good to support a version which we can not even test,
-or have a high confidence level to support.
+or have a high confidence level to support. It is also the version which GPUI (ou gui lib of choice) recomends to have as minimum.
 
 == Contribution
 
-For contributing to this project it is recommended to use something
-minimal. The issue with something like VSCode, or Windsurf, or whatever
-the "Cool Kids" use, they suck when it comes to project sturcture intergrity
-and not tryint to litter the codebase, with horrible formatting techniques
-or random information files.
+For this project we highly recommend using sometihng which is minimal, due to stuff like vscode and other such forks, with respect
+extensions usually come with a formatter and will completley reformat code in a way which we dont want.
+So our reccomendation is Zed=editor for something graphical, and any terminal editor with our sugguested LSP's (rust-analyser, nixd, & nil)
 
 What is expected to be used to contribute is the following:
 
@@ -29,11 +27,11 @@ What is expected to be used to contribute is the following:
 * nil
 * nixd
 * cargo
-* pkg-config (obviously)
+* pkg-config
 
-We also atleasy highly motivate the contributers to leverage
-the power of nix, and use the exact same versions of everything
-we use.
+We also atleast highly motivate the contributers to leverage
+the power of Nix, and use the exact same versions of everything
+we use, Nix can also get your devenv setup with one command.
 
 == Licensing
 
