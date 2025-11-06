@@ -1,8 +1,8 @@
-= ByteLab
+= ByteLabs
 
-image:./public/bl.png[ByteLab Logo,150,150]
+image:./.resources/bl.png[ByteLab Logo,150,150]
 
-ByteLab is a Open-soruce tool for making Byte music.
+ByteLabs is a Open-soruce tool for making Byte music.
 
 == Support
 
