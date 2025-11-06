@@ -16,7 +16,7 @@ or have a high confidence level to support. It is also the version which GPUI (o
 
 For this project we highly recommend using something which is minimal, due to stuff like vscode and other such forks, with respect
 extensions usually come with a formatter and will completely reformat code in a way which we dont want.
-So our recommendation is Zed=editor for something graphical, and any terminal editor with our suggested LSP's (rust-analyser, nixd, & nil)
+So our recommendation is Zed-editor for something graphical, and any terminal editor with our suggested LSP's (rust-analyser, nixd, & nil)
 
 What is expected to be used to contribute is the following:
 
