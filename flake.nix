@@ -49,6 +49,7 @@
             atk
             gtk3
             nixd
+            typos
             tokei
             helix
             clippy
