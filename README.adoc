@@ -10,7 +10,7 @@ ByteLabs is a Open-soruce tool for making Byte music.
 
 the macOS minimum version is `10.15.7`, Catalina. We have also taken into consideration the support
 for people below Catalina, but have realised this could cause more bad than good to support a version which we can not even test,
-or have a high confidence level to support. It is also the version which GPUI (ou gui lib of choice) recomends to have as minimum.
+or have a high confidence level to support. It is also the version which GPUI (our gui lib of choice) recomends to have as minimum.
 
 == Contribution
 
