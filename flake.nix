@@ -95,6 +95,7 @@
               ''
             else
               ''
+                #!/bin/bash
                 $(dscl . -read $HOME 'UserShell' | grep --only-matching '/.*')
                 exit
               '';

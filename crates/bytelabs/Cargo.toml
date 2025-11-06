@@ -12,9 +12,9 @@ path = "src/main.rs"
 gpui.workspace = true
 
 [package.metadata.bundle]
-icon = ["resources/app-icon@2.png", "resources/app-icon.icns"]
+icon = ["resources/app-icon@2x.png", "resources/app-icon.png"]
 identifier = "uk.co.bytelabs"
 name = "ByteLabs"
 osx_minimum_system_version = "10.15.7"
 osx_info_plist_exts = ["resources/info/*"]
-osx_url_schemes = ["zed"]
+osx_url_schemes = ["uk.co.bytelabs"]
