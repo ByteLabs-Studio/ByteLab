@@ -87,19 +87,6 @@
           ];
 
           LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeLibs;
-          shellHook =
-            if !stdenv.isDarwin then
-              ''
-                #!/bin/bash
-                $(awk -F: -v user=$USER 'user == $1 {print $NF}' /etc/passwd)
-                exit
-              ''
-            else
-              ''
-                #!/bin/bash
-                $(dscl . -read $HOME 'UserShell' | grep --only-matching '/.*')
-                exit
-              '';
         };
 
         packages.default = pkgs.callPackage ./src-tauri/package.nix { inherit pkgs; };

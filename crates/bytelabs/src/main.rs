@@ -1,53 +1,103 @@
-use gpui::*;
+use {
+    iced::{
+        Border, Center, Element, Length, Task, Theme,
+        theme::palette::{Pair, Primary},
+        widget::{button, column, text},
+    },
+    std::{
+        sync::{Arc, Mutex},
+        time::Duration,
+    },
+};
 
+fn main() -> iced::Result {
+    iced::application("ByteLabs", ByteLabs::update, ByteLabs::view)
+        .theme(ByteLabs::theme)
+        .run_with(ByteLabs::new)
+}
+
+#[derive(Clone, Default)]
+struct ConfigTheme {}
+
+#[derive(Clone, Default)]
+struct DesktopConfig {
+    theme: iced::theme::Theme,
+}
+
+#[derive(Clone)]
 struct ByteLabs {
-    text: String,
+    config: DesktopConfig,
 }
 
-impl Render for ByteLabs {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .flex()
-            .bg(rgb(0x2e7d32))
-            .size_full()
-            .justify_center()
-            .items_center()
-            .text_xl()
-            .text_color(rgb(0xffffff))
-            .child(format!("Hello, {}!", &self.text))
+#[derive(Debug, Clone)]
+enum Message {
+    ExitProgram,
+}
+
+impl ByteLabs {
+    fn update(&mut self, message: Message) -> Task<Message> {
+        match message {
+            Message::ExitProgram => iced::exit(),
+        }
     }
-}
 
-actions!(image, [Quit]);
+    fn view(&self) -> Element<'_, Message> {
+        column![
+            text("Froststrap").size(30),
+            button("Close app")
+                .on_press(Message::ExitProgram)
+                .style(|theme: &Theme, status| {
+                    use button::{Status, Style};
+                    let Primary {
+                        weak: Pair { color: weak, .. },
+                        base: Pair { color: base, .. },
+                        strong: Pair { color: strong, .. },
+                    } = theme.extended_palette().primary;
 
-pub fn main() {
-    gpui::Application::new().run(move |cx: &mut App| {
-        let bounds =
-            WindowBounds::Windowed(gpui::Bounds::centered(None, size(px(400.), px(200.)), cx));
+                    let mut style =
+                        Style::default().with_background(iced::Background::from(match status {
+                            Status::Active | Status::Disabled => weak,
+                            Status::Hovered => base,
+                            Status::Pressed => strong,
+                        }));
 
-        cx.open_window(
-            WindowOptions {
-                window_bounds: Some(bounds),
-                titlebar: Some(gpui::TitlebarOptions {
-                    title: Some("ByteLabs".into()),
-                    appears_transparent: false,
-                    traffic_light_position: Some(point(px(12.0), px(6.0))),
-                }),
-                window_min_size: Some(gpui::Size {
-                    width: px(360.0),
-                    height: px(240.0),
-                }),
-                ..Default::default()
-            },
-            move |_window, cx| {
-                cx.new(move |_| ByteLabs {
-                    text: "World".into(),
+                    style.border = Border {
+                        width: 1.0,
+                        color: iced::Color::from_rgba8(0, 0, 0, 0.0),
+                        radius: self.config.theme.roundness.into(),
+                    };
+
+                    style
                 })
-            },
-        )
-        .unwrap();
+                .padding(10)
+        ]
+        .width(Length::Fill)
+        .padding(20)
+        .align_x(Center)
+        .into()
+    }
 
-        cx.on_action(|_: &Quit, cx| cx.quit());
-        cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
-    });
+    fn theme(&self) -> Theme {
+        self.config.theme.clone()
+    }
+
+    fn new() -> (Self, Task<Message>) {
+        let config = match DesktopConfig::load(None) {
+            Ok(cfg) => {
+                // log::success!("Config loaded successfully");
+                cfg
+            }
+            Err(e) => {
+                // log::error!("{}", e.to_string());
+                DesktopConfig::default()
+            }
+        };
+
+        (
+            Self { config },
+            Task::future(async move {
+                std::thread::sleep(Duration::from_millis(10));
+            }),
+        )
+    }
 }
