@@ -47,7 +47,6 @@
           buildInputs = [
             nil
             atk
-            gtk3
             nixd
             typos
             tokei
@@ -55,19 +54,15 @@
             clippy
             librsvg
             rustfmt
-            onefetch
-            superhtml
             libsoup_3
             xdg-utils
             pkg-config
-            gdk-pixbuf
             cargo-bundle
             rust-analyzer
             typescript-language-server
             rust-bin.nightly.latest.default
           ]
           ++ lib.optionals pkgs.stdenv.isLinux [
-            webkitgtk_4_1
             alsa-lib
           ];
 
