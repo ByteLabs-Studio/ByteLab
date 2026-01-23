@@ -4,35 +4,29 @@ image:./.resources/bl.png[ByteLab Logo,150,150]
 
 ByteLabs is a Open-source tool for making Byte music.
 
-== Support
+== Building
 
-=== macOS
+=== Prerequisites
 
-the macOS minimum version is `10.15.7`, Catalina. We have also taken into consideration the support
-for people below Catalina, but have realised this could cause more bad than good to support a version which we can not even test,
-or have a high confidence level to support. It is also the version which GPUI (our gui lib of choice) recommends to have as minimum.
-
-== Contribution
-
-For this project we highly recommend using something which is minimal, due to stuff like vscode and other such forks, with respect
-extensions usually come with a formatter and will completely reformat code in a way which we dont want.
-So our recommendation is Zed-editor for something graphical, and any terminal editor with our suggested LSP's (rust-analyser, nixd, & nil)
-
-What is expected to be used to contribute is the following:
-
-* clippy
-* rust-analyser
-* rustfmt
-* treefmt(-nix)
-* nil
-* nixd
+* rust
 * cargo
-* pkg-config
+* alsa (linux)
+* xdg-utils (linux)
+* x11-devel (linux)
+* wayland (wayland)
+* libxkbcommon (linux)  
 
-We also atleast highly motivate the contributors to leverage
-the power of Nix, and use the exact same versions of everything
-we use, Nix can also get your devenv setup with one command.
+== Testing
+
+[source,zsh]
+----
+RUST_LOG=info cargo r	
+----
+
+This will give the most amount of logging.
+For more information with `env_logger` please read https://crates.io/crates/env_logger.
+
 
 == Licensing
 
-This project is under link:./LICENSE.txt[the GNU Affero General Public License v3.0]
+This project is under link:./LICENSE.txt[AGPL v3.0].
