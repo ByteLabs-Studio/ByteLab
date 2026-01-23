@@ -3,7 +3,7 @@ name = "bytelabs"
 path = "src/main.rs"
 
 [dependencies]
-bytelab-settings.workspace = true
+bytelab_settings.workspace = true
 env_logger.workspace = true
 iced.workspace = true
 log.workspace = true

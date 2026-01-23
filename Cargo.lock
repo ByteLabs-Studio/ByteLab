@@ -416,7 +416,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64fa3c856b712db6612c019f14756e64e4bcea13337a6b33b696333a9eaa2d06"
 
 [[package]]
-name = "bytelab-config"
+name = "bytelab_config"
 version = "0.1.0"
 dependencies = [
  "log",
@@ -425,10 +425,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "bytelab-settings"
+name = "bytelab_settings"
 version = "0.1.0"
 dependencies = [
- "bytelab-config",
+ "bytelab_config",
  "chrono",
  "iced",
  "json",
@@ -440,7 +440,7 @@ dependencies = [
 name = "bytelabs"
 version = "0.1.0"
 dependencies = [
- "bytelab-settings",
+ "bytelab_settings",
  "env_logger",
  "iced",
  "log",

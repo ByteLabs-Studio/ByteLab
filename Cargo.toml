@@ -16,10 +16,10 @@ iced = "0.13.1"
 json = "0.12.4"
 toml = "0.9.8"
 
-[workspace.dependencies.bytelab-config]
+[workspace.dependencies.bytelab_config]
 path = "crates/config"
 
-[workspace.dependencies.bytelab-settings]
+[workspace.dependencies.bytelab_settings]
 path = "crates/settings"
 
 [workspace.dependencies.log]
