@@ -24,3 +24,4 @@ result
 *.temp
 .DS_Store
 [Dd]esktop.ini
+node_modules
