@@ -3,6 +3,7 @@ name = "bytelabs"
 path = "src/main.rs"
 
 [dependencies]
+bytelab-settings.workspace = true
 bytelab-logger.workspace = true
 iced.workspace = true
 tokio.workspace = true

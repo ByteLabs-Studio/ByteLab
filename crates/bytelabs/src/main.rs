@@ -1,96 +1,108 @@
 use {
     bytelab_logger::info,
+    bytelab_settings::{Settings, SettingsMessage},
     iced::{
-        Center, Element, Length, Task, keyboard, task,
-        theme::Theme,
+        Center, Element, Length, Task, Theme, keyboard,
         widget::{button, column, text},
     },
 };
 
 fn main() -> iced::Result {
-    iced::application("BytleLab", ByteLab::update, ByteLab::view)
+    iced::application("ByteLab", ByteLab::update, ByteLab::view)
         .theme(ByteLab::theme)
         .subscription(ByteLab::subscription)
         .run()
 }
 
-#[derive(Default)]
 struct ByteLab {
-    theme: Theme,
-    page: Pages,
+    page: Page,
+    settings_state: Settings,
 }
 
-#[derive(Default)]
-enum Pages {
-    #[default]
+impl Default for ByteLab {
+    fn default() -> Self {
+        Self {
+            page: Page::Dashboard,
+            settings_state: Settings::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum Page {
     Dashboard,
     Project(String),
     Settings,
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+enum MainMessage {
     ExitProgram,
-    OpenSettings,
-    OpenDashboard,
-    OpenProject(String),
+    OpenPage(Page),
+    Settings(SettingsMessage),
 }
 
 impl ByteLab {
     fn theme(&self) -> Theme {
-        // self.theme.clone()
         Theme::Dark
     }
 
-    fn subscription(&self) -> iced::Subscription<Message> {
+    fn subscription(&self) -> iced::Subscription<MainMessage> {
         keyboard::on_key_press(|key, modifier| {
-            // info!("Key pressed: {key:#?} {modifier:#?}");
             if modifier == keyboard::Modifiers::CTRL && key == keyboard::Key::Character(",".into())
             {
-                Some(Message::OpenSettings)
+                Some(MainMessage::OpenPage(Page::Settings))
             } else {
                 None
             }
         })
     }
 
-    fn update(&mut self, message: Message) -> Task<Message> {
+    fn update(&mut self, message: MainMessage) -> Task<MainMessage> {
         match message {
-            Message::ExitProgram => iced::exit(),
-            Message::OpenSettings => {
-                info!("Opening Settings");
-                self.page = Pages::Settings;
-                task::Task::none()
+            MainMessage::ExitProgram => iced::exit(),
+
+            MainMessage::OpenPage(p) => {
+                info!("Opening {p:#?}");
+                self.page = p;
+                Task::none()
             }
-            Message::OpenDashboard => {
-                info!("Opening Dashboard");
-                self.page = Pages::Dashboard;
-                task::Task::none()
-            }
-            Message::OpenProject(x) => {
-                info!("Opening Project {x}");
-                self.page = Pages::Project(x);
-                task::Task::none()
+
+            MainMessage::Settings(settings_msg) => {
+                if let SettingsMessage::ExitSettings = settings_msg {
+                    self.page = Page::Dashboard;
+                    return Task::none();
+                }
+
+                self.settings_state
+                    .update(settings_msg)
+                    .map(MainMessage::Settings)
             }
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> Element<'_, MainMessage> {
         match &self.page {
-            Pages::Dashboard => column![
+            Page::Dashboard => column![
                 text("ByteLab").size(30),
-                button(text("Open Settings")).on_press(Message::OpenSettings),
-                button(text("Open Project: a")).on_press(Message::OpenProject(
-                    "/home/invra/docs/bytelab/sandwhich.blproj".into()
-                )),
-                button(text("Exit")).on_press(Message::ExitProgram),
+                button(text("Open Settings")).on_press(MainMessage::OpenPage(Page::Settings)),
+                button(text("Open Project")).on_press(MainMessage::OpenPage(Page::Project(
+                    "sandwich.blproj".into()
+                ))),
+                button(text("Exit")).on_press(MainMessage::ExitProgram),
             ]
             .width(Length::Fill)
             .padding(20)
             .align_x(Center)
             .into(),
-            Pages::Settings => text("yo").into(),
-            Pages::Project(x) => text(format!("Project: {x}")).into(),
+
+            Page::Settings => self.settings_state.view().map(MainMessage::Settings),
+
+            Page::Project(x) => column![
+                text(format!("Project: {x}")),
+                button("Back").on_press(MainMessage::OpenPage(Page::Dashboard))
+            ]
+            .into(),
         }
     }
 }

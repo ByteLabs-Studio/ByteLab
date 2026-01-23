@@ -361,6 +361,7 @@ name = "bytelab-config"
 version = "0.1.0"
 dependencies = [
  "bytelab-logger",
+ "serde",
  "toml",
 ]
 
@@ -385,6 +386,7 @@ name = "bytelabs"
 version = "0.1.0"
 dependencies = [
  "bytelab-logger",
+ "bytelab-settings",
  "iced",
  "tokio",
 ]

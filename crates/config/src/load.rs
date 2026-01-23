@@ -17,11 +17,5 @@ pub fn load(config: Option<String>) -> Result<Config, ConfigError> {
     let config: Config =
         toml::from_str(&content).map_err(|e| ConfigError::ParseError(e.to_string()))?;
 
-    let mut errors = Vec::new();
-
-    if !errors.is_empty() {
-        return Err(ConfigError::ValidationErrors(errors));
-    }
-
     Ok(config)
 }

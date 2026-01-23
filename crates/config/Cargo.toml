@@ -1,5 +1,6 @@
 [dependencies]
 bytelab-logger.workspace = true
+serde.workspace = true
 toml.workspace = true
 
 [package]

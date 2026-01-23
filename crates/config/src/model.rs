@@ -6,25 +6,28 @@ pub struct Config {
     pub behavior: Option<UserBehaviorOpts>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
 pub struct UserInterfaceOpts {
     pub scale: Option<UserInterfaceOptsScale>,
 }
 
-pub struct UserIntefaceOptsScale(f32);
+#[derive(Debug, Deserialize, Clone)]
+pub struct UserInterfaceOptsScale(f32);
 
-impl Deref for UserIntefaceOptsScale {
-    type Target = str;
-    fn deref(&self) -> &str {
+impl Deref for UserInterfaceOptsScale {
+    type Target = f32;
+    fn deref(&self) -> &f32 {
         &self.0
     }
 }
 
-impl Default for UserIntefaceOptsScale {
+impl Default for UserInterfaceOptsScale {
     fn default() -> Self {
         Self(1.0)
     }
 }
 
+#[derive(Debug, Deserialize, Clone)]
 pub struct UserBehaviorOpts {
     // When pausing the time state is 00:00:00.
     pub pause_throw_to_start: Option<BoolTrue>,
@@ -39,18 +42,19 @@ pub struct UserBehaviorOpts {
     // Initial metronome speed.
     pub init_project_bpm: Option<UserBpm>,
     // Initial metronome time-signature.
-    pub init_project_time_signature: Option<UserTimeSignature>,
+    pub init_project_time_signature: Option<String>,
     // Metronome count in time before track actually plays, 0 means instant.
     pub init_project_bar_countin: Option<u8>,
     // Arrangement view resolution: eg. "1/4", "1/8", "1/16"
     pub init_arrangement_resolution: Option<String>,
 }
 
+#[derive(Debug, Deserialize, Clone)]
 pub struct BoolTrue(bool);
 
 impl Deref for BoolTrue {
-    type Target = str;
-    fn deref(&self) -> &str {
+    type Target = bool;
+    fn deref(&self) -> &bool {
         &self.0
     }
 }
@@ -61,11 +65,12 @@ impl Default for BoolTrue {
     }
 }
 
+#[derive(Debug, Deserialize, Clone)]
 pub struct UserBpm(f32);
 
 impl Deref for UserBpm {
-    type Target = str;
-    fn deref(&self) -> &str {
+    type Target = f32;
+    fn deref(&self) -> &f32 {
         &self.0
     }
 }
@@ -76,7 +81,7 @@ impl Default for UserBpm {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Deserialize, Debug, Clone)]
 pub enum ArmBehaviors {
     #[default]
     Off,
