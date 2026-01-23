@@ -1,9 +1,3 @@
-[package]
-name = "bytelabs"
-version = "0.1.0"
-edition = "2024"
-publish = false
-
 [[bin]]
 name = "bytelabs"
 path = "src/main.rs"
@@ -11,12 +5,17 @@ path = "src/main.rs"
 [dependencies]
 # logger.workspace = true
 chrono.workspace = true
-# serde.workspace = true
-tokio.workspace = true
 iced.workspace = true
 json.workspace = true
+# serde.workspace = true
+tokio.workspace = true
 toml.workspace = true
 
+[package]
+name = "bytelabs"
+version = "0.1.0"
+edition = "2024"
+publish = false
 
 [package.metadata.bundle]
 icon = ["resources/app-icon@2x.png", "resources/app-icon.png"]

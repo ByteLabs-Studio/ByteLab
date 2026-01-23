@@ -1,0 +1,9 @@
+[dependencies]
+bytelab-logger.workspace = true
+toml.workspace = true
+
+[package]
+name = "bytelab-config"
+version = "0.1.0"
+edition = "2024"
+publish = false

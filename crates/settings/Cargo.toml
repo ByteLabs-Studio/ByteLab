@@ -1,0 +1,13 @@
+[dependencies]
+bytelab-config.workspace = true
+chrono.workspace = true
+iced.workspace = true
+json.workspace = true
+tokio.workspace = true
+toml.workspace = true
+
+[package]
+name = "bytelab-settings"
+version = "0.1.0"
+edition = "2024"
+publish = false
