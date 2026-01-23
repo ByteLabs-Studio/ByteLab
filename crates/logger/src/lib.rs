@@ -1,4 +1,6 @@
 mod colorize;
+use chrono::{Datelike, Timelike};
+
 use crate::colorize::{Color, ColorExt};
 use std::fmt;
 
@@ -8,19 +10,17 @@ pub enum LogLevel {
     Success,
     Warning,
     Error,
-    Bot,
     Debug,
 }
 
 impl LogLevel {
     const fn as_str(&self) -> &'static str {
         match self {
-            Self::Info => "inf",
-            Self::Success => "suc",
-            Self::Warning => "wrn",
-            Self::Error => "err",
-            Self::Bot => "bot",
-            Self::Debug => "dbg",
+            Self::Info => "info",
+            Self::Success => "success",
+            Self::Warning => "warn",
+            Self::Error => "error",
+            Self::Debug => "debug",
         }
     }
 
@@ -30,23 +30,28 @@ impl LogLevel {
             Self::Success => Color::Green,
             Self::Warning => Color::Yellow,
             Self::Error => Color::Red,
-            Self::Bot => Color::Magenta,
             Self::Debug => Color::Blue,
         }
     }
 }
 
 pub fn log_internal(level: LogLevel, args: fmt::Arguments<'_>) {
-    let (stream, color) = match level {
-        LogLevel::Error => ("STDERR", level.get_color()),
-        _ => ("STDOUT", level.get_color()),
-    };
+    let color = level.get_color();
 
     println!(
         "{} {}",
-        format!("[{}/{}]:", stream, level.as_str())
-            .color(color)
-            .bold(),
+        format!(
+            "[{}-{}-{}T{}:{}:{} {}]:",
+            chrono::Utc::now().year(),
+            chrono::Utc::now().month(),
+            chrono::Utc::now().day(),
+            chrono::Utc::now().hour(),
+            chrono::Utc::now().minute(),
+            chrono::Utc::now().second(),
+            level.as_str().to_uppercase()
+        )
+        .color(color)
+        .bold(),
         args
     );
 }
@@ -57,8 +62,6 @@ macro_rules! info {
         bytelab_logger::log_internal(bytelab_logger::LogLevel::Info, format_args!($($arg)*));
     };
 }
-// #[allow(unused_imports)]
-// pub use info;
 
 #[macro_export]
 macro_rules! success {
@@ -66,8 +69,6 @@ macro_rules! success {
         bytelab_logger::log_internal(bytelab_logger::LogLevel::Success, format_args!($($arg)*));
     };
 }
-// #[allow(unused_imports)]
-// pub use success;
 
 #[macro_export]
 macro_rules! warning {
@@ -75,8 +76,6 @@ macro_rules! warning {
         bytelab_logger::log_internal(bytelab_logger::LogLevel::Warning, format_args!($($arg)*));
     };
 }
-// #[allow(unused_imports)]
-// pub use warning;
 
 #[macro_export]
 macro_rules! error {
@@ -84,17 +83,6 @@ macro_rules! error {
         bytelab_logger::log_internal(bytelab_logger::LogLevel::Error, format_args!($($arg)*));
     };
 }
-// #[allow(unused_imports)]
-// pub use error;
-
-#[macro_export]
-macro_rules! bot {
-    ($($arg:tt)*) => {
-        bytelab_logger::log_internal(bytelab_logger::LogLevel::Bot, format_args!($($arg)*));
-    };
-}
-// #[allow(unused_imports)]
-// pub use bot;
 
 #[macro_export]
 macro_rules! debug {
@@ -102,5 +90,3 @@ macro_rules! debug {
         bytelab_logger::log_internal(bytelab_logger::LogLevel::Debug, format_args!($($arg)*));
     };
 }
-// #[allow(unused_imports)]
-// pub use debug;
