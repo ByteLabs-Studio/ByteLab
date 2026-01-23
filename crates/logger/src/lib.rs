@@ -37,7 +37,6 @@ impl LogLevel {
 }
 
 pub fn log_internal(level: LogLevel, args: fmt::Arguments<'_>) {
-    terminal::disable_raw_mode().ok();
     let (stream, color) = match level {
         LogLevel::Error => ("STDERR", level.get_color()),
         _ => ("STDOUT", level.get_color()),
@@ -50,60 +49,58 @@ pub fn log_internal(level: LogLevel, args: fmt::Arguments<'_>) {
             .bold(),
         args
     );
-    terminal::enable_raw_mode().expect("failed to enable raw mode");
 }
 
 #[macro_export]
 macro_rules! info {
     ($($arg:tt)*) => {
-        nyra_utils::log::log_internal(nyra_utils::log::LogLevel::Info, format_args!($($arg)*));
+        bytelab_logger::log_internal(bytelab_logger::LogLevel::Info, format_args!($($arg)*));
     };
 }
-use crossterm::terminal;
-#[allow(unused_imports)]
-pub use info;
+// #[allow(unused_imports)]
+// pub use info;
 
 #[macro_export]
 macro_rules! success {
     ($($arg:tt)*) => {
-        nyra_utils::log::log_internal(nyra_utils::log::LogLevel::Success, format_args!($($arg)*));
+        bytelab_logger::log_internal(bytelab_logger::LogLevel::Success, format_args!($($arg)*));
     };
 }
-#[allow(unused_imports)]
-pub use success;
+// #[allow(unused_imports)]
+// pub use success;
 
 #[macro_export]
 macro_rules! warning {
     ($($arg:tt)*) => {
-        nyra_utils::log::log_internal(nyra_utils::log::LogLevel::Warning, format_args!($($arg)*));
+        bytelab_logger::log_internal(bytelab_logger::LogLevel::Warning, format_args!($($arg)*));
     };
 }
-#[allow(unused_imports)]
-pub use warning;
+// #[allow(unused_imports)]
+// pub use warning;
 
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        nyra_utils::log::log_internal(nyra_utils::log::LogLevel::Error, format_args!($($arg)*));
+        bytelab_logger::log_internal(bytelab_logger::LogLevel::Error, format_args!($($arg)*));
     };
 }
-#[allow(unused_imports)]
-pub use error;
+// #[allow(unused_imports)]
+// pub use error;
 
 #[macro_export]
 macro_rules! bot {
     ($($arg:tt)*) => {
-        nyra_utils::log::log_internal(nyra_utils::log::LogLevel::Bot, format_args!($($arg)*));
+        bytelab_logger::log_internal(bytelab_logger::LogLevel::Bot, format_args!($($arg)*));
     };
 }
-#[allow(unused_imports)]
-pub use bot;
+// #[allow(unused_imports)]
+// pub use bot;
 
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
-        nyra_utils::log::log_internal(nyra_utils::log::LogLevel::Debug, format_args!($($arg)*));
+        bytelab_logger::log_internal(bytelab_logger::LogLevel::Debug, format_args!($($arg)*));
     };
 }
-#[allow(unused_imports)]
-pub use debug;
+// #[allow(unused_imports)]
+// pub use debug;

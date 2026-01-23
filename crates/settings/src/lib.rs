@@ -1,3 +1,7 @@
-use iced::Element;
+use iced::{Element, widget::button};
 
-fn view() -> Element<'static, Message> {}
+pub impl SettingsPage {
+    pub fn view() -> Element<'_, Message> {
+        button("t").into()
+    }
+}

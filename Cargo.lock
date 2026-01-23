@@ -384,11 +384,9 @@ dependencies = [
 name = "bytelabs"
 version = "0.1.0"
 dependencies = [
- "chrono",
+ "bytelab-logger",
  "iced",
- "json",
  "tokio",
- "toml",
 ]
 
 [[package]]

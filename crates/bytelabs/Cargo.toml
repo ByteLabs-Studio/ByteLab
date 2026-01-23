@@ -3,13 +3,9 @@ name = "bytelabs"
 path = "src/main.rs"
 
 [dependencies]
-# logger.workspace = true
-chrono.workspace = true
+bytelab-logger.workspace = true
 iced.workspace = true
-json.workspace = true
-# serde.workspace = true
 tokio.workspace = true
-toml.workspace = true
 
 [package]
 name = "bytelabs"
