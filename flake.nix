@@ -68,6 +68,7 @@
               fontconfig
               freetype
               freetype.dev
+              vulkan-loader
               libGL
               pkg-config
               xorg.libX11
@@ -78,7 +79,7 @@
               libxkbcommon
             ];
 
-          LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeLibs;
+          LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath runtimeLibs;
         };
 
         packages.default = pkgs.bytelab;
