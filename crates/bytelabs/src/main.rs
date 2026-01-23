@@ -1,13 +1,14 @@
 use {
-    bytelab_logger::info,
     bytelab_settings::{Settings, SettingsMessage},
     iced::{
         Center, Element, Length, Task, Theme, keyboard,
         widget::{button, column, text},
     },
+    log::info,
 };
 
 fn main() -> iced::Result {
+    env_logger::init();
     iced::application("ByteLab", ByteLab::update, ByteLab::view)
         .theme(ByteLab::theme)
         .subscription(ByteLab::subscription)

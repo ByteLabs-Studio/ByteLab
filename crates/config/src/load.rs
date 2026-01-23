@@ -1,6 +1,6 @@
 use {
-    crate::{Config, ConfigError, path},
-    bytelab_logger::info,
+    crate::{path, Config, ConfigError},
+    log::info,
     std::{fs, path::PathBuf},
 };
 

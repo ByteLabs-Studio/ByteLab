@@ -4,9 +4,10 @@ path = "src/main.rs"
 
 [dependencies]
 bytelab-settings.workspace = true
-bytelab-logger.workspace = true
-iced.workspace = true
+env_logger.workspace = true
 tokio.workspace = true
+iced.workspace = true
+log.workspace = true
 
 [package]
 name = "bytelabs"
