@@ -28,7 +28,7 @@ impl Default for ByteLab {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 enum Page {
     Dashboard,
     Project(String),
@@ -38,7 +38,9 @@ enum Page {
 #[derive(Debug, Clone)]
 enum MainMessage {
     ExitProgram,
+    NavigateBack,
     OpenPage(Page),
+    TogglePage(Page),
     Settings(SettingsMessage),
 }
 
@@ -48,13 +50,14 @@ impl ByteLab {
     }
 
     fn subscription(&self) -> iced::Subscription<MainMessage> {
-        keyboard::on_key_press(|key, modifier| {
-            if modifier == keyboard::Modifiers::CTRL && key == keyboard::Key::Character(",".into())
-            {
-                Some(MainMessage::OpenPage(Page::Settings))
-            } else {
-                None
+        keyboard::on_key_press(|key, modifier| match key {
+            keyboard::Key::Named(keyboard::key::Named::Escape) => Some(MainMessage::NavigateBack),
+
+            keyboard::Key::Character(c) if c.as_ref() == "," && modifier.command() => {
+                Some(MainMessage::TogglePage(Page::Settings))
             }
+
+            _ => None,
         })
     }
 
@@ -63,6 +66,21 @@ impl ByteLab {
             MainMessage::ExitProgram => iced::exit(),
 
             MainMessage::OpenPage(p) => {
+                if self.page == p {
+                    return Task::none();
+                }
+
+                info!("Opening {p:#?}");
+                self.page = p;
+                Task::none()
+            }
+
+            MainMessage::TogglePage(p) => {
+                if self.page == p {
+                    self.page = Page::Dashboard;
+                    return Task::none();
+                }
+
                 info!("Opening {p:#?}");
                 self.page = p;
                 Task::none()
@@ -77,6 +95,13 @@ impl ByteLab {
                 self.settings_state
                     .update(settings_msg)
                     .map(MainMessage::Settings)
+            }
+
+            MainMessage::NavigateBack => {
+                if let Page::Settings = self.page {
+                    self.page = Page::Dashboard;
+                }
+                Task::none()
             }
         }
     }
