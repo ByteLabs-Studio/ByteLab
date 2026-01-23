@@ -1,5 +1,5 @@
 use {
-    crate::{path, Config, ConfigError},
+    crate::{Config, ConfigError, path},
     log::info,
     std::{fs, path::PathBuf},
 };

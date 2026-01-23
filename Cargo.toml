@@ -16,15 +16,15 @@ iced = "0.13.1"
 json = "0.12.4"
 toml = "0.9.8"
 
-[workspace.dependencies.log]
-features = ["kv_unstable_serde", "serde"]
-version = "0.4.29"
-
 [workspace.dependencies.bytelab-config]
 path = "crates/config"
 
 [workspace.dependencies.bytelab-settings]
 path = "crates/settings"
+
+[workspace.dependencies.log]
+features = ["kv_unstable_serde", "serde"]
+version = "0.4.29"
 
 [workspace.package]
 publish = false
