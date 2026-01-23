@@ -18,19 +18,9 @@
     let
       overlays = {
         default = final: prev: {
-          csharp-language-server = (final.callPackage naersk { }).buildPackage {
-            pname = "csharp-language-server";
+          bytelab = (final.callPackage naersk { }).buildPackage {
+            pname = "bytelabs";
             src = ./.;
-
-            nativeBuildInputs = [ final.dotnetCorePackages.dotnet_8.sdk ];
-
-            cargoTestOptions =
-              x:
-              x
-              ++ [
-                "--"
-                "--skip=first_line_is_jsonrpc"
-              ];
           };
         };
       };
@@ -91,7 +81,7 @@
           LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeLibs;
         };
 
-        packages.default = pkgs.csharp-language-server;
+        packages.default = pkgs.bytelab;
         formatter =
           (treefmt-nix.lib.evalModule pkgs (_: {
             projectRootFile = ".git/config";
