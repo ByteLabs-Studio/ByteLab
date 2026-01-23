@@ -1,6 +1,6 @@
 use iced::{
     Element, Length, Task,
-    widget::{button, column, container, horizontal_space, pick_list, row, text},
+    widget::{Space, button, column, container, pick_list, row, text},
 };
 
 #[derive(Debug, Clone)]
@@ -88,13 +88,13 @@ impl Settings {
                 text("Audio System").size(24),
                 row![
                     text("Driver Model"),
-                    horizontal_space(),
+                    Space::new().width(Length::Fill),
                     pick_list(
                         self.driver_options.clone(),
                         self.selected_driver.clone(),
                         SettingsMessage::DriverSelected
                     )
-                    .width(150)
+                    .width(200)
                 ]
                 .width(Length::Fill)
                 .align_y(iced::Alignment::Center),

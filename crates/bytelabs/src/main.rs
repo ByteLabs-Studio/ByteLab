@@ -9,9 +9,9 @@ use {
 
 fn main() -> iced::Result {
     env_logger::init();
-    iced::application("ByteLab", ByteLab::update, ByteLab::view)
-        .theme(ByteLab::theme)
+    iced::application(ByteLab::default, ByteLab::update, ByteLab::view)
         .subscription(ByteLab::subscription)
+        .theme(ByteLab::theme)
         .run()
 }
 
@@ -43,6 +43,7 @@ enum MainMessage {
     OpenPage(Page),
     TogglePage(Page),
     Settings(SettingsMessage),
+    EventOccurred(keyboard::Event),
 }
 
 impl ByteLab {
@@ -51,19 +52,32 @@ impl ByteLab {
     }
 
     fn subscription(&self) -> iced::Subscription<MainMessage> {
-        keyboard::on_key_press(|key, modifier| match key {
-            keyboard::Key::Named(keyboard::key::Named::Escape) => Some(MainMessage::NavigateBack),
-
-            keyboard::Key::Character(c) if c.as_ref() == "," && modifier.command() => {
-                Some(MainMessage::TogglePage(Page::Settings))
-            }
-
-            _ => None,
-        })
+        keyboard::listen().map(MainMessage::EventOccurred)
     }
 
     fn update(&mut self, message: MainMessage) -> Task<MainMessage> {
         match message {
+            MainMessage::EventOccurred(event) => {
+                match event {
+                    keyboard::Event::KeyPressed { key, modifiers, .. } => {
+                        info!("{key:#?} {modifiers:#?}");
+                        if key == keyboard::Key::Character(",".into())
+                            && modifiers == keyboard::Modifiers::COMMAND
+                        {
+                            return Task::done(MainMessage::TogglePage(Page::Settings));
+                        }
+
+                        if key == keyboard::Key::Named(keyboard::key::Named::Escape)
+                            && self.page == Page::Settings
+                        {
+                            return Task::done(MainMessage::NavigateBack);
+                        }
+                    }
+                    _ => {}
+                }
+                Task::none()
+            }
+
             MainMessage::ExitProgram => iced::exit(),
 
             MainMessage::OpenPage(p) => {
