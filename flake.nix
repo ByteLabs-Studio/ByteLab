@@ -9,20 +9,90 @@
   outputs =
     {
       nixpkgs,
+      naersk,
       flake-utils,
       treefmt-nix,
       rust-overlay,
       ...
     }:
-    flake-utils.lib.eachSystem [ "aarch64-linux" "aarch64-darwin" "x86_64-linux" ] (
+    let
+      overlays = {
+        default = final: prev: {
+          csharp-language-server = (final.callPackage naersk { }).buildPackage {
+            pname = "csharp-language-server";
+            src = ./.;
+
+            nativeBuildInputs = [ final.dotnetCorePackages.dotnet_8.sdk ];
+
+            cargoTestOptions =
+              x:
+              x
+              ++ [
+                "--"
+                "--skip=first_line_is_jsonrpc"
+              ];
+          };
+        };
+      };
+    in
+    flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ (import rust-overlay) ];
+          overlays = [
+            (import rust-overlay)
+            overlays.default
+          ];
+        };
+      in
+      {
+        devShells.default = pkgs.mkShell rec {
+          buildInputs =
+            with pkgs;
+            [
+              nil
+              atk
+              nixd
+              typos
+              tokei
+              helix
+              clippy
+              librsvg
+              rustfmt
+              libsoup_3
+              xdg-utils
+              pkg-config
+              cargo-bundle
+              rust-analyzer
+              rust-bin.nightly.latest.default
+            ]
+            ++ lib.optionals stdenv.isLinux [
+              alsa-lib
+            ];
+
+          runtimeLibs =
+            with pkgs;
+            lib.optionals stdenv.isLinux [
+              expat
+              fontconfig
+              freetype
+              freetype.dev
+              libGL
+              pkg-config
+              xorg.libX11
+              xorg.libXcursor
+              xorg.libXi
+              xorg.libXrandr
+              wayland
+              libxkbcommon
+            ];
+
+          LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeLibs;
         };
 
-        formatters =
+        packages.default = pkgs.csharp-language-server;
+        formatter =
           (treefmt-nix.lib.evalModule pkgs (_: {
             projectRootFile = ".git/config";
             programs = {
@@ -39,53 +109,10 @@
               use_try_shorthand = true;
               wrap_comments = true;
             };
-          })).config.build;
-      in
-      with pkgs;
-      {
-        devShells.default = mkShell rec {
-          buildInputs = [
-            nil
-            atk
-            nixd
-            typos
-            tokei
-            helix
-            clippy
-            librsvg
-            rustfmt
-            libsoup_3
-            xdg-utils
-            pkg-config
-            cargo-bundle
-            rust-analyzer
-            typescript-language-server
-            rust-bin.nightly.latest.default
-          ]
-          ++ lib.optionals pkgs.stdenv.isLinux [
-            alsa-lib
-          ];
-
-          runtimeLibs = lib.optionals stdenv.isLinux [
-            expat
-            fontconfig
-            freetype
-            freetype.dev
-            libGL
-            pkg-config
-            xorg.libX11
-            xorg.libXcursor
-            xorg.libXi
-            xorg.libXrandr
-            wayland
-            libxkbcommon
-          ];
-
-          LD_LIBRARY_PATH = builtins.foldl' (a: b: "${a}:${b}/lib") "${pkgs.vulkan-loader}/lib" runtimeLibs;
-        };
-
-        packages.default = pkgs.callPackage ./src-tauri/package.nix { inherit pkgs; };
-        formatter = formatters.wrapper;
+          })).config.build.wrapper;
       }
-    );
+    )
+    // {
+      inherit overlays;
+    };
 }
