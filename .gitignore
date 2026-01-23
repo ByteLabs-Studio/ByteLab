@@ -15,6 +15,9 @@ target
 # Git related
 *.patch
 
+# Nix related
+result
+
 # Other
 *.log
 *.tmp
