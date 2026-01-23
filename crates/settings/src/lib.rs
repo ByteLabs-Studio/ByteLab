@@ -66,7 +66,6 @@ impl Settings {
         let sidebar = column![
             button("General")
                 .on_press(SettingsMessage::CategorySelected(Category::General))
-                .back
                 .width(Length::Fill),
             button("Behavior")
                 .on_press(SettingsMessage::CategorySelected(Category::Behavior))
