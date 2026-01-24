@@ -49,7 +49,6 @@ impl Default for Settings {
 #[derive(Debug, Clone)]
 pub enum SettingsMessage {
     CategorySelected(Category),
-    ExitSettings,
     DriverSelected(String),
 }
 
@@ -123,7 +122,6 @@ impl Settings {
                 self.active_category = category;
                 Task::none()
             }
-            SettingsMessage::ExitSettings => Task::none(),
 
             SettingsMessage::DriverSelected(driver) => {
                 self.selected_driver = Some(driver);
@@ -161,7 +159,6 @@ impl Settings {
                     )
                     .width(200)
                 ],
-                button("Back to Dashboard").on_press(SettingsMessage::ExitSettings)
             ]
             .spacing(20),
 

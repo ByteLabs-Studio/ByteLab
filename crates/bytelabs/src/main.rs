@@ -4,6 +4,7 @@ use {
     iced::{
         Center, Element, Length, Task, Theme, keyboard,
         widget::{button, column, text},
+        window,
     },
     log::info,
     std::sync::{Arc, RwLock},
@@ -17,7 +18,7 @@ fn main() -> iced::Result {
         std::process::exit(1);
     }
 
-    iced::application(ByteLab::default, ByteLab::update, ByteLab::view)
+    iced::daemon(ByteLab::new, ByteLab::update, ByteLab::view)
         .subscription(ByteLab::subscription)
         .theme(ByteLab::theme)
         .run()
@@ -27,39 +28,50 @@ struct ByteLab {
     page: Page,
     config: Arc<RwLock<Config>>,
     settings_state: Settings,
-}
-
-impl Default for ByteLab {
-    fn default() -> Self {
-        let config = Config::global();
-        println!("{config:#?}");
-        Self {
-            page: Page::Dashboard,
-            settings_state: Settings::new(),
-            config,
-        }
-    }
+    main_window: Option<window::Id>,
+    settings_window: Option<window::Id>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 enum Page {
     Dashboard,
     Project(String),
-    Settings,
 }
 
 #[derive(Debug, Clone)]
 enum MainMessage {
     ExitProgram,
-    NavigateBack,
     OpenPage(Page),
-    TogglePage(Page),
     Settings(SettingsMessage),
     EventOccurred(keyboard::Event),
+    OpenSettings,
+    MainWindowOpened(window::Id),
+    SettingsWindowOpened(window::Id),
+    WindowClosed(window::Id),
 }
 
 impl ByteLab {
-    fn theme(&self) -> Theme {
+    fn new() -> (Self, Task<MainMessage>) {
+        let config = Config::global();
+
+        let (id, task) = window::open(window::Settings {
+            size: iced::Size::new(800.0, 600.0),
+            ..Default::default()
+        });
+
+        (
+            Self {
+                page: Page::Dashboard,
+                settings_state: Settings::new(),
+                config,
+                main_window: Some(id),
+                settings_window: None,
+            },
+            task.map(MainMessage::MainWindowOpened),
+        )
+    }
+
+    fn theme(&self, _window: window::Id) -> Theme {
         self.config
             .read()
             .ok()
@@ -68,28 +80,59 @@ impl ByteLab {
     }
 
     fn subscription(&self) -> iced::Subscription<MainMessage> {
-        keyboard::listen().map(MainMessage::EventOccurred)
+        iced::Subscription::batch(vec![
+            keyboard::listen().map(MainMessage::EventOccurred),
+            window::close_events().map(MainMessage::WindowClosed),
+        ])
     }
 
     fn update(&mut self, message: MainMessage) -> Task<MainMessage> {
         match message {
-            MainMessage::EventOccurred(event) => {
-                match event {
-                    keyboard::Event::KeyPressed { key, modifiers, .. } => {
-                        info!("{key:#?} {modifiers:#?}");
-                        if key == keyboard::Key::Character(",".into())
-                            && modifiers == keyboard::Modifiers::COMMAND
-                        {
-                            return Task::done(MainMessage::TogglePage(Page::Settings));
-                        }
+            MainMessage::MainWindowOpened(id) => {
+                self.main_window = Some(id);
+                Task::none()
+            }
 
-                        if key == keyboard::Key::Named(keyboard::key::Named::Escape)
-                            && self.page == Page::Settings
-                        {
-                            return Task::done(MainMessage::NavigateBack);
+            MainMessage::EventOccurred(event) => {
+                if let keyboard::Event::KeyPressed { key, modifiers, .. } = event {
+                    if key == keyboard::Key::Character(",".into())
+                        && modifiers == keyboard::Modifiers::COMMAND
+                    {
+                        return Task::done(MainMessage::OpenSettings);
+                    }
+
+                    if key == keyboard::Key::Named(keyboard::key::Named::Escape) {
+                        if let Some(id) = self.settings_window {
+                            return window::close(id);
                         }
                     }
-                    _ => {}
+                }
+                Task::none()
+            }
+
+            MainMessage::OpenSettings => {
+                if self.settings_window.is_none() {
+                    let (id, task) = window::open(window::Settings {
+                        size: iced::Size::new(450.0, 600.0),
+                        ..Default::default()
+                    });
+
+                    self.settings_window = Some(id);
+                    return task.map(MainMessage::SettingsWindowOpened);
+                }
+                Task::none()
+            }
+
+            MainMessage::SettingsWindowOpened(id) => {
+                self.settings_window = Some(id);
+                Task::none()
+            }
+
+            MainMessage::WindowClosed(id) => {
+                if Some(id) == self.settings_window {
+                    self.settings_window = None;
+                } else if Some(id) == self.main_window {
+                    return iced::exit();
                 }
                 Task::none()
             }
@@ -97,71 +140,48 @@ impl ByteLab {
             MainMessage::ExitProgram => iced::exit(),
 
             MainMessage::OpenPage(p) => {
-                if self.page == p {
-                    return Task::none();
-                }
-
-                info!("Opening {p:#?}");
-                self.page = p;
-                Task::none()
-            }
-
-            MainMessage::TogglePage(p) => {
-                if self.page == p {
-                    self.page = Page::Dashboard;
-                    return Task::none();
-                }
-
-                info!("Opening {p:#?}");
-                self.page = p;
-                Task::none()
-            }
-
-            MainMessage::Settings(settings_msg) => {
-                if let SettingsMessage::ExitSettings = settings_msg {
-                    self.page = Page::Dashboard;
-                    return Task::none();
-                }
-
-                self.settings_state
-                    .update(settings_msg)
-                    .map(MainMessage::Settings)
-            }
-
-            MainMessage::NavigateBack => {
-                if let Page::Settings = self.page {
-                    self.page = Page::Dashboard;
+                if self.page != p {
+                    info!("Opening {p:#?}");
+                    self.page = p;
                 }
                 Task::none()
             }
+
+            MainMessage::Settings(settings_msg) => self
+                .settings_state
+                .update(settings_msg)
+                .map(MainMessage::Settings),
         }
     }
 
-    fn view(&self) -> Element<'_, MainMessage> {
-        match &self.page {
+    fn view(&self, window_id: window::Id) -> Element<'_, MainMessage> {
+        if Some(window_id) == self.settings_window {
+            return self
+                .settings_state
+                .view(self.config.clone())
+                .map(MainMessage::Settings);
+        }
+
+        let content = match &self.page {
             Page::Dashboard => column![
                 text("ByteLab").size(30),
-                button(text("Open Settings")).on_press(MainMessage::OpenPage(Page::Settings)),
+                button(text("Open Settings")).on_press(MainMessage::OpenSettings),
                 button(text("Open Project")).on_press(MainMessage::OpenPage(Page::Project(
                     "sandwich.blproj".into()
                 ))),
                 button(text("Exit")).on_press(MainMessage::ExitProgram),
-            ]
-            .width(Length::Fill)
-            .padding(20)
-            .align_x(Center)
-            .into(),
-
-            Page::Settings => self
-                .settings_state
-                .view(self.config.clone())
-                .map(MainMessage::Settings),
+            ],
 
             Page::Project(x) => column![
                 text(format!("Project: {x}")),
                 button("Back").on_press(MainMessage::OpenPage(Page::Dashboard))
-            ]
-            .into(),
-        }
+            ],
+        };
+
+        content
+            .width(Length::Fill)
+            .padding(20)
+            .align_x(Center)
+            .into()
     }
 }
