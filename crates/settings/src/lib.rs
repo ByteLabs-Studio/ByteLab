@@ -103,6 +103,12 @@ impl Settings {
                 }
             };
 
+            style.text_color = if is_active {
+                palette.background.weakest.text
+            } else {
+                palette.background.base.text
+            };
+
             style
         })
         .into()
