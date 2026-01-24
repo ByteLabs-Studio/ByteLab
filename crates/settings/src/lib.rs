@@ -1,5 +1,6 @@
 use iced::{
-    Element, Length, Task,
+    Alignment::Center,
+    Element, Length, Task, Theme,
     widget::{Space, button, column, container, pick_list, row, text},
 };
 
@@ -22,7 +23,14 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             active_category: Category::General,
+            #[cfg(target_os = "linux")]
             selected_driver: Some("Pipewire".to_string()),
+            #[cfg(target_os = "macos")]
+            selected_driver: Some("Core Audio".to_string()),
+            #[cfg(target_os = "windows")]
+            selected_driver: Some("WASAPI".to_string()),
+            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+            selected_driver: Some("ALSA".to_string()),
             #[cfg(target_os = "linux")]
             driver_options: vec!["Pipewire".into(), "JACK".into(), "ALSA".into()],
             #[cfg(target_os = "macos")]
@@ -30,7 +38,7 @@ impl Default for Settings {
             #[cfg(target_os = "windows")]
             driver_options: vec!["WASAPI".into(), "JACK".into()],
             #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-            driver_options: vec!["WASAPI".into(), "JACK".into()],
+            driver_options: vec!["ALSA".into()],
         }
     }
 }
@@ -45,6 +53,59 @@ pub enum SettingsMessage {
 impl Settings {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    fn category_button<'a>(
+        &self,
+        label: &'a str,
+        category: Category,
+    ) -> Element<'a, SettingsMessage> {
+        let is_active = self.active_category == category;
+
+        button(
+            row![
+                container(Space::new().width(0))
+                    .width(4)
+                    .height(27)
+                    .style(move |theme: &Theme| {
+                        container::Style::default().background(if is_active {
+                            theme.extended_palette().primary.base.color
+                        } else {
+                            iced::Color::TRANSPARENT
+                        })
+                    }),
+                text(label).size(14),
+            ]
+            .spacing(12)
+            .align_y(Center),
+        )
+        .width(Length::Fill)
+        .padding(iced::Padding {
+            left: 0.0,
+            right: 12.0,
+            top: 6.0,
+            bottom: 6.0,
+        })
+        .on_press(SettingsMessage::CategorySelected(category))
+        .style(move |theme: &Theme, status| {
+            let palette = theme.extended_palette();
+            let mut style = button::primary(theme, status);
+
+            style.background = match status {
+                button::Status::Hovered => Some(palette.background.weak.color.into()),
+                button::Status::Pressed => Some(palette.background.weaker.color.into()),
+                _ => {
+                    if is_active {
+                        Some(palette.background.weakest.color.into())
+                    } else {
+                        None
+                    }
+                }
+            };
+
+            style
+        })
+        .into()
     }
 
     pub fn update(&mut self, message: SettingsMessage) -> Task<SettingsMessage> {
@@ -64,18 +125,12 @@ impl Settings {
 
     pub fn view(&self) -> Element<'_, SettingsMessage> {
         let sidebar = column![
-            button("General")
-                .on_press(SettingsMessage::CategorySelected(Category::General))
-                .width(Length::Fill),
-            button("Behavior")
-                .on_press(SettingsMessage::CategorySelected(Category::Behavior))
-                .width(Length::Fill),
-            button("Audio")
-                .on_press(SettingsMessage::CategorySelected(Category::Audio))
-                .width(Length::Fill),
+            self.category_button("General", Category::General),
+            self.category_button("Behavior", Category::Behavior),
+            self.category_button("Audio", Category::Audio),
         ]
-        .spacing(10)
-        .width(150);
+        .spacing(4)
+        .width(160);
 
         let content = match self.active_category {
             Category::General => column![
@@ -104,11 +159,10 @@ impl Settings {
             _ => column![text("Work in progress")],
         };
 
-        container(row![sidebar, content.width(Length::Fill)].spacing(20))
+        container(row![sidebar, content.width(Length::Fill)].spacing(40))
             .padding(20)
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x(Length::Fill)
             .into()
     }
 }
