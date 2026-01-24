@@ -6,7 +6,7 @@ use {
         widget::{button, column, text},
     },
     log::info,
-    std::sync::Arc,
+    std::sync::{Arc, RwLock},
 };
 
 fn main() -> iced::Result {
@@ -25,7 +25,7 @@ fn main() -> iced::Result {
 
 struct ByteLab {
     page: Page,
-    config: Arc<Config>,
+    config: Arc<RwLock<Config>>,
     settings_state: Settings,
 }
 
@@ -61,12 +61,9 @@ enum MainMessage {
 impl ByteLab {
     fn theme(&self) -> Theme {
         self.config
-            .as_ref()
-            .clone()
-            .interface
-            .unwrap_or_default()
-            .theme
-            .clone()
+            .read()
+            .ok()
+            .and_then(|cfg| cfg.interface.as_ref()?.theme.clone())
             .unwrap_or(Theme::Light)
     }
 
