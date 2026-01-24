@@ -1,6 +1,6 @@
 use std::sync::{Arc, RwLock};
 
-use bytelab_config::Config;
+use bytelabs_config::Config;
 use iced::{
     Alignment::Center,
     Element, Length, Task, Theme,

@@ -1,6 +1,6 @@
 use {
-    bytelab_config::Config,
-    bytelab_settings::{Settings, SettingsMessage},
+    bytelabs_config::Config,
+    bytelabs_settings::{Settings, SettingsMessage},
     iced::{
         Center, Element, Length, Task, Theme, keyboard,
         widget::{button, column, text},
@@ -18,13 +18,14 @@ fn main() -> iced::Result {
         std::process::exit(1);
     }
 
-    iced::daemon(ByteLab::new, ByteLab::update, ByteLab::view)
-        .subscription(ByteLab::subscription)
-        .theme(ByteLab::theme)
+    iced::daemon(ByteLabs::new, ByteLabs::update, ByteLabs::view)
+        .subscription(ByteLabs::subscription)
+        .title("ByteLabs")
+        .theme(ByteLabs::theme)
         .run()
 }
 
-struct ByteLab {
+struct ByteLabs {
     page: Page,
     config: Arc<RwLock<Config>>,
     settings_state: Settings,
@@ -50,7 +51,7 @@ enum MainMessage {
     WindowClosed(window::Id),
 }
 
-impl ByteLab {
+impl ByteLabs {
     fn new() -> (Self, Task<MainMessage>) {
         let config = Config::global();
 
@@ -164,7 +165,7 @@ impl ByteLab {
 
         let content = match &self.page {
             Page::Dashboard => column![
-                text("ByteLab").size(30),
+                text("ByteLabs").size(30),
                 button(text("Open Settings")).on_press(MainMessage::OpenSettings),
                 button(text("Open Project")).on_press(MainMessage::OpenPage(Page::Project(
                     "sandwich.blproj".into()
