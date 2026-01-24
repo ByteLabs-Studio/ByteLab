@@ -1,4 +1,4 @@
-use {serde::Deserialize, std::ops::Deref};
+use {iced::Theme, serde::Deserialize, std::ops::Deref};
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
@@ -6,8 +6,46 @@ pub struct Config {
     pub behavior: Option<UserBehaviorOpts>,
 }
 
+fn deserialize_theme<'de, D>(deserializer: D) -> Result<Option<iced::Theme>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let d = Option::<String>::deserialize(deserializer)?;
+
+    match d.as_deref().map(|s| s.trim()) {
+        Some("light") => Ok(Some(iced::Theme::Light)),
+        Some("dark") => Ok(Some(iced::Theme::Dark)),
+        Some("dracula") => Ok(Some(iced::Theme::Dracula)),
+        Some("nord") => Ok(Some(iced::Theme::Nord)),
+        Some("solarized-light") => Ok(Some(iced::Theme::SolarizedLight)),
+        Some("solarized-dark") => Ok(Some(iced::Theme::SolarizedDark)),
+        Some("gruvbox-light") => Ok(Some(iced::Theme::GruvboxLight)),
+        Some("gruvbox-dark") => Ok(Some(iced::Theme::GruvboxDark)),
+        Some("catpuccin-latte") => Ok(Some(iced::Theme::CatppuccinLatte)),
+        Some("catpuccin-frappe") => Ok(Some(iced::Theme::CatppuccinFrappe)),
+        Some("catpuccin-macchiato") => Ok(Some(iced::Theme::CatppuccinMacchiato)),
+        Some("catpuccin-mocha") => Ok(Some(iced::Theme::CatppuccinMocha)),
+        Some("tokyo-night") => Ok(Some(iced::Theme::TokyoNight)),
+        Some("tokyo-night-storm") => Ok(Some(iced::Theme::TokyoNightStorm)),
+        Some("tokyo-night-light") => Ok(Some(iced::Theme::TokyoNightLight)),
+        Some("kanagawa-wave") => Ok(Some(iced::Theme::KanagawaWave)),
+        Some("kanagawa-dragon") => Ok(Some(iced::Theme::KanagawaDragon)),
+        Some("kanagawa-lotus") => Ok(Some(iced::Theme::KanagawaLotus)),
+        Some("moonfly") => Ok(Some(iced::Theme::Moonfly)),
+        Some("nightfly") => Ok(Some(iced::Theme::Nightfly)),
+        Some("oxocarbon") => Ok(Some(iced::Theme::Oxocarbon)),
+        Some("ferra") => Ok(Some(iced::Theme::Ferra)),
+
+        Some(x) => Err(serde::de::Error::custom(format!("Unknown theme: {}", x))),
+
+        None => Ok(None),
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct UserInterfaceOpts {
+    #[serde(deserialize_with = "deserialize_theme")]
+    pub theme: Option<Theme>,
     pub scale: Option<UserInterfaceOptsScale>,
 }
 

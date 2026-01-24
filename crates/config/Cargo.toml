@@ -1,5 +1,6 @@
 [dependencies]
 log.workspace = true
+iced.workspace = true
 serde.workspace = true
 toml.workspace = true
 
