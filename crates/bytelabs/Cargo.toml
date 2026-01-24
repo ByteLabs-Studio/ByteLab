@@ -2,6 +2,9 @@
 name = "bytelabs"
 path = "src/main.rs"
 
+[build-dependencies]
+winresource.workspace = true
+
 [dependencies]
 bytelab_settings.workspace = true
 env_logger.workspace = true
