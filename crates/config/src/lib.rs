@@ -1,5 +1,5 @@
+pub mod api;
 pub mod error;
-pub mod load;
 pub mod model;
 pub mod path;
 pub use crate::model::Config;
@@ -13,7 +13,7 @@ static CONFIG_INSTANCE: OnceLock<Arc<Config>> = OnceLock::new();
 
 impl Config {
     pub fn init_global(config_path: Option<String>) -> Result<(), ConfigError> {
-        let cfg = load::load(config_path)?;
+        let cfg = api::load(config_path)?;
         CONFIG_INSTANCE
             .set(Arc::new(cfg))
             .map_err(|_| ConfigError::ParseError("Config already initialized".into()))

@@ -1,9 +1,58 @@
-use {iced::Theme, serde::Deserialize, std::ops::Deref};
+use {
+    iced::Theme,
+    serde::{Deserialize, Serialize},
+    std::ops::Deref,
+};
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     pub interface: Option<UserInterfaceOpts>,
     pub behavior: Option<UserBehaviorOpts>,
+}
+impl Config {
+    pub(crate) fn default() -> Config {
+        Config {
+            interface: None,
+            behavior: None,
+        }
+    }
+}
+
+fn serialize_theme<S>(theme: &Option<iced::Theme>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match theme {
+        Some(t) => {
+            let theme_str = match t {
+                iced::Theme::Light => "light",
+                iced::Theme::Dark => "dark",
+                iced::Theme::Dracula => "dracula",
+                iced::Theme::Nord => "nord",
+                iced::Theme::SolarizedLight => "solarized-light",
+                iced::Theme::SolarizedDark => "solarized-dark",
+                iced::Theme::GruvboxLight => "gruvbox-light",
+                iced::Theme::GruvboxDark => "gruvbox-dark",
+                iced::Theme::CatppuccinLatte => "catpuccin-latte",
+                iced::Theme::CatppuccinFrappe => "catpuccin-frappe",
+                iced::Theme::CatppuccinMacchiato => "catpuccin-macchiato",
+                iced::Theme::CatppuccinMocha => "catpuccin-mocha",
+                iced::Theme::TokyoNight => "tokyo-night",
+                iced::Theme::TokyoNightStorm => "tokyo-night-storm",
+                iced::Theme::TokyoNightLight => "tokyo-night-light",
+                iced::Theme::KanagawaWave => "kanagawa-wave",
+                iced::Theme::KanagawaDragon => "kanagawa-dragon",
+                iced::Theme::KanagawaLotus => "kanagawa-lotus",
+                iced::Theme::Moonfly => "moonfly",
+                iced::Theme::Nightfly => "nightfly",
+                iced::Theme::Oxocarbon => "oxocarbon",
+                iced::Theme::Ferra => "ferra",
+                _ => "dark",
+            };
+            serializer.serialize_str(theme_str)
+        }
+        None => serializer.serialize_none(),
+    }
 }
 
 fn deserialize_theme<'de, D>(deserializer: D) -> Result<Option<iced::Theme>, D::Error>
@@ -42,14 +91,26 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInterfaceOpts {
-    #[serde(deserialize_with = "deserialize_theme")]
+    #[serde(
+        deserialize_with = "deserialize_theme",
+        serialize_with = "serialize_theme"
+    )]
     pub theme: Option<Theme>,
     pub scale: Option<UserInterfaceOptsScale>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+impl Default for UserInterfaceOpts {
+    fn default() -> Self {
+        Self {
+            theme: Some(Theme::Light),
+            scale: Some(UserInterfaceOptsScale(1.0)),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserInterfaceOptsScale(f32);
 
 impl Deref for UserInterfaceOptsScale {
@@ -65,7 +126,7 @@ impl Default for UserInterfaceOptsScale {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserBehaviorOpts {
     // When pausing the time state is 00:00:00.
     pub pause_throw_to_start: Option<BoolTrue>,
@@ -87,7 +148,7 @@ pub struct UserBehaviorOpts {
     pub init_arrangement_resolution: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BoolTrue(bool);
 
 impl Deref for BoolTrue {
@@ -103,7 +164,7 @@ impl Default for BoolTrue {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct UserBpm(f32);
 
 impl Deref for UserBpm {
@@ -119,7 +180,7 @@ impl Default for UserBpm {
     }
 }
 
-#[derive(Default, Deserialize, Debug, Clone)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 pub enum ArmBehaviors {
     #[default]
     Off,

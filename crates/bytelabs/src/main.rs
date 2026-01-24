@@ -1,14 +1,22 @@
 use {
+    bytelab_config::Config,
     bytelab_settings::{Settings, SettingsMessage},
     iced::{
         Center, Element, Length, Task, Theme, keyboard,
         widget::{button, column, text},
     },
     log::info,
+    std::sync::Arc,
 };
 
 fn main() -> iced::Result {
     env_logger::init();
+
+    if let Err(e) = Config::init_global(None) {
+        eprintln!("Failed to initialize config: {:?}", e);
+        std::process::exit(1);
+    }
+
     iced::application(ByteLab::default, ByteLab::update, ByteLab::view)
         .subscription(ByteLab::subscription)
         .theme(ByteLab::theme)
@@ -17,14 +25,18 @@ fn main() -> iced::Result {
 
 struct ByteLab {
     page: Page,
+    config: Arc<Config>,
     settings_state: Settings,
 }
 
 impl Default for ByteLab {
     fn default() -> Self {
+        let config = Config::global();
+        println!("{config:#?}");
         Self {
             page: Page::Dashboard,
             settings_state: Settings::new(),
+            config,
         }
     }
 }
@@ -48,7 +60,14 @@ enum MainMessage {
 
 impl ByteLab {
     fn theme(&self) -> Theme {
-        Theme::Dark
+        self.config
+            .as_ref()
+            .clone()
+            .interface
+            .unwrap_or_default()
+            .theme
+            .clone()
+            .unwrap_or(Theme::Light)
     }
 
     fn subscription(&self) -> iced::Subscription<MainMessage> {

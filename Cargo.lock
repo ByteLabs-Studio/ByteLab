@@ -401,6 +401,7 @@ dependencies = [
 name = "bytelabs"
 version = "0.1.0"
 dependencies = [
+ "bytelab_config",
  "bytelab_settings",
  "env_logger",
  "iced",
