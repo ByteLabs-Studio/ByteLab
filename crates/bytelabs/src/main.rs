@@ -152,7 +152,10 @@ impl ByteLab {
             .align_x(Center)
             .into(),
 
-            Page::Settings => self.settings_state.view().map(MainMessage::Settings),
+            Page::Settings => self
+                .settings_state
+                .view(self.config.clone())
+                .map(MainMessage::Settings),
 
             Page::Project(x) => column![
                 text(format!("Project: {x}")),

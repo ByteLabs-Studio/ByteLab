@@ -1,3 +1,6 @@
+use std::sync::{Arc, RwLock};
+
+use bytelab_config::Config;
 use iced::{
     Alignment::Center,
     Element, Length, Task, Theme,
@@ -129,7 +132,7 @@ impl Settings {
         }
     }
 
-    pub fn view(&self) -> Element<'_, SettingsMessage> {
+    pub fn view(&self, config: Arc<RwLock<Config>>) -> Element<'_, SettingsMessage> {
         let sidebar = column![
             self.category_button("General", Category::General),
             self.category_button("Behavior", Category::Behavior),
@@ -141,6 +144,23 @@ impl Settings {
         let content = match self.active_category {
             Category::General => column![
                 text("General Settings").size(24),
+                row![
+                    text("Color Scheme:"),
+                    Space::new().width(Length::Fill),
+                    pick_list(
+                        vec!["Light".into(), "Dark".into()],
+                        Some(format!(
+                            "{:?}",
+                            config.read().ok().and_then(|cfg| cfg
+                                .interface
+                                .as_ref()?
+                                .theme
+                                .clone())
+                        )),
+                        SettingsMessage::DriverSelected
+                    )
+                    .width(200)
+                ],
                 button("Back to Dashboard").on_press(SettingsMessage::ExitSettings)
             ]
             .spacing(20),
@@ -148,7 +168,7 @@ impl Settings {
             Category::Audio => column![
                 text("Audio System").size(24),
                 row![
-                    text("Driver Model"),
+                    text("Driver Model:"),
                     Space::new().width(Length::Fill),
                     pick_list(
                         self.driver_options.clone(),
