@@ -1,16 +1,18 @@
-use std::sync::{Arc, RwLock};
-
-use bytelabs_config::Config;
-use iced::{
-    Alignment::Center,
-    Element, Length, Task, Theme,
-    widget::{Space, button, column, container, pick_list, row, text},
+use {
+    bytelabs_config::Config,
+    iced::{
+        Alignment::Center,
+        Element, Length, Task, Theme,
+        widget::{Space, button, column, container, pick_list, row, text},
+    },
+    std::sync::{Arc, RwLock},
 };
 
 #[derive(Debug, Clone)]
 pub struct Settings {
     active_category: Category,
     selected_driver: Option<String>,
+
     driver_options: Vec<String>,
 }
 
@@ -50,6 +52,7 @@ impl Default for Settings {
 pub enum SettingsMessage {
     CategorySelected(Category),
     DriverSelected(String),
+    ThemeSelected(Theme),
 }
 
 impl Settings {
@@ -127,6 +130,7 @@ impl Settings {
                 self.selected_driver = Some(driver);
                 Task::none()
             }
+            SettingsMessage::ThemeSelected(_) => Task::none(),
         }
     }
 
@@ -140,27 +144,29 @@ impl Settings {
         .width(160);
 
         let content = match self.active_category {
-            Category::General => column![
-                text("General Settings").size(24),
-                row![
-                    text("Color Scheme:"),
-                    Space::new().width(Length::Fill),
-                    pick_list(
-                        vec!["Light".into(), "Dark".into()],
-                        Some(format!(
-                            "{:?}",
-                            config.read().ok().and_then(|cfg| cfg
-                                .interface
-                                .as_ref()?
-                                .theme
-                                .clone())
-                        )),
-                        SettingsMessage::DriverSelected
-                    )
-                    .width(200)
-                ],
-            ]
-            .spacing(20),
+            Category::General => {
+                let current_theme = config
+                    .read()
+                    .ok()
+                    .and_then(|cfg| cfg.interface.as_ref()?.theme.clone())
+                    .unwrap_or(Theme::Dark);
+
+                column![
+                    text("General Settings").size(24),
+                    row![
+                        text("Color Scheme:"),
+                        Space::new().width(Length::Fill),
+                        pick_list(
+                            Theme::ALL,
+                            Some(current_theme),
+                            SettingsMessage::ThemeSelected
+                        )
+                        .width(200)
+                    ]
+                    .align_y(iced::Alignment::Center),
+                ]
+                .spacing(20)
+            }
 
             Category::Audio => column![
                 text("Audio System").size(24),

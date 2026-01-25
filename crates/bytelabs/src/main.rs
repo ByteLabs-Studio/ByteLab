@@ -41,7 +41,6 @@ enum Page {
 
 #[derive(Debug, Clone)]
 enum MainMessage {
-    ExitProgram,
     OpenPage(Page),
     Settings(SettingsMessage),
     EventOccurred(keyboard::Event),
@@ -139,8 +138,6 @@ impl ByteLabs {
                 Task::none()
             }
 
-            MainMessage::ExitProgram => iced::exit(),
-
             MainMessage::OpenPage(p) => {
                 if self.page != p {
                     info!("Opening {p:#?}");
@@ -149,10 +146,26 @@ impl ByteLabs {
                 Task::none()
             }
 
-            MainMessage::Settings(settings_msg) => self
-                .settings_state
-                .update(settings_msg)
-                .map(MainMessage::Settings),
+            MainMessage::Settings(settings_msg) => {
+                match &settings_msg {
+                    SettingsMessage::ThemeSelected(new_theme) => {
+                        if let Ok(mut cfg) = self.config.write() {
+                            if let Some(interface) = &mut cfg.interface {
+                                interface.theme = Some(new_theme.clone());
+                            }
+                        }
+
+                        if let Err(e) = Config::save_global() {
+                            log::error!("Failed to autosave config: {:?}", e);
+                        }
+                    }
+                    _ => {}
+                }
+
+                self.settings_state
+                    .update(settings_msg)
+                    .map(MainMessage::Settings)
+            }
         }
     }
 
@@ -171,7 +184,6 @@ impl ByteLabs {
                 button(text("Open Project")).on_press(MainMessage::OpenPage(Page::Project(
                     "sandwich.blproj".into()
                 ))),
-                button(text("Exit")).on_press(MainMessage::ExitProgram),
             ],
 
             Page::Project(x) => column![
