@@ -12,7 +12,6 @@ use {
 pub struct Settings {
     active_category: Category,
     selected_driver: Option<String>,
-
     driver_options: Vec<String>,
 }
 
@@ -185,7 +184,7 @@ impl Settings {
             ]
             .spacing(20),
 
-            _ => column![text("Work in progress")],
+            _ => column![text("Work in progress").size(24)],
         };
 
         container(row![sidebar, content.width(Length::Fill)].spacing(40))
