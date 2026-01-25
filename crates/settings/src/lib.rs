@@ -148,7 +148,7 @@ impl Settings {
                     .read()
                     .ok()
                     .and_then(|cfg| cfg.interface.as_ref()?.theme.clone())
-                    .unwrap_or(Theme::Dark);
+                    .unwrap_or(Theme::Light);
 
                 column![
                     text("General Settings").size(24),
