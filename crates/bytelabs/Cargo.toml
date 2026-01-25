@@ -8,6 +8,7 @@ winresource.workspace = true
 [dependencies]
 bytelabs_settings.workspace = true
 bytelabs_config.workspace = true
+bytelabs_aios.workspace = true
 env_logger.workspace = true
 iced.workspace = true
 log.workspace = true

@@ -131,6 +131,9 @@ impl ByteLabs {
 
             MainMessage::WindowClosed(id) => {
                 if Some(id) == self.settings_window {
+                    // Ensure the test tone is stopped immediately when the settings window closes.
+                    // Best-effort call; ignore the Result.
+                    let _ = bytelabs_aios::stop_test_tone_on_settings_window_close();
                     self.settings_window = None;
                 } else if Some(id) == self.main_window {
                     return iced::exit();

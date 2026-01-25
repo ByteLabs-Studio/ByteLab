@@ -20,8 +20,15 @@ toml = "0.9.8"
 version = "1.0.228"
 features = ["derive"]
 
+[workspace.dependencies.cpal]
+version = "0.17.1"
+features = ["asio", "jack"]
+
 [workspace.dependencies.bytelabs_config]
 path = "crates/config"
+
+[workspace.dependencies.bytelabs_aios]
+path = "crates/audio_engine"
 
 [workspace.dependencies.bytelabs_settings]
 path = "crates/settings"

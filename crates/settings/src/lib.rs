@@ -11,8 +11,8 @@ use {
     std::sync::{Arc, RwLock},
 };
 
-pub use sidebar_button::category_button as sidebar_category_button;
 pub use pages::*;
+pub use sidebar_button::category_button as sidebar_category_button;
 
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -20,6 +20,9 @@ pub struct Settings {
     selected_driver: Option<String>,
     driver_options: Vec<String>,
     theme: Theme,
+    test_tone_playing: bool,
+    test_tone_freq: f32,
+    test_tone_gain: f32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -32,6 +35,9 @@ pub enum Category {
 
 #[derive(Debug, Clone)]
 pub enum SettingsMessage {
+    PlayTestTone,
+    SetTestToneFrequency(f32),
+    SetTestToneGain(f32),
     CategorySelected(Category),
     DriverSelected(String),
     ThemeSelected(Theme),
@@ -45,25 +51,29 @@ impl Settings {
             .and_then(|cfg| cfg.interface.as_ref()?.theme.clone())
             .unwrap_or(Theme::Light);
 
+        let selected_driver: Option<String> = Some(
+            bytelabs_aios::get_available_drivers()
+                .iter()
+                .cloned()
+                .nth(0)
+                .map(|d| d.label())
+                .unwrap_or("No driver")
+                .into(),
+        );
+
+        let driver_options: Vec<String> = bytelabs_aios::get_available_drivers()
+            .iter()
+            .map(|d| d.to_string())
+            .collect();
+
         Self {
             active_category: Category::General,
-            #[cfg(target_os = "linux")]
-            selected_driver: Some("Pipewire".to_string()),
-            #[cfg(target_os = "macos")]
-            selected_driver: Some("Core Audio".to_string()),
-            #[cfg(target_os = "windows")]
-            selected_driver: Some("WASAPI".to_string()),
-            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-            selected_driver: Some("ALSA".to_string()),
-            #[cfg(target_os = "linux")]
-            driver_options: vec!["Pipewire".into(), "JACK".into(), "ALSA".into()],
-            #[cfg(target_os = "macos")]
-            driver_options: vec!["Core Audio".into(), "JACK".into()],
-            #[cfg(target_os = "windows")]
-            driver_options: vec!["WASAPI".into(), "JACK".into()],
-            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-            driver_options: vec!["ALSA".into()],
+            selected_driver,
+            driver_options,
             theme,
+            test_tone_playing: false,
+            test_tone_freq: 440.0,
+            test_tone_gain: 0.5,
         }
     }
 
@@ -73,6 +83,49 @@ impl Settings {
         config: Arc<RwLock<Config>>,
     ) -> Task<SettingsMessage> {
         match message {
+            SettingsMessage::PlayTestTone => {
+                if !self.test_tone_playing {
+                    match bytelabs_aios::start_test_tone(self.test_tone_freq) {
+                        Ok(()) => {
+                            self.test_tone_playing = true;
+                        }
+                        Err(_) => {
+                            log::error!("Failed to start test tone");
+                        }
+                    }
+                } else {
+                    match bytelabs_aios::stop_test_tone() {
+                        Ok(()) => {
+                            self.test_tone_playing = false;
+                        }
+                        Err(_) => {
+                            log::error!("Failed to stop test tone");
+                        }
+                    }
+                }
+                Task::none()
+            }
+
+            SettingsMessage::SetTestToneFrequency(new_freq) => {
+                self.test_tone_freq = new_freq;
+                if self.test_tone_playing {
+                    if let Err(_) = bytelabs_aios::set_test_tone_frequency(new_freq) {
+                        log::error!("Failed to update test tone frequency");
+                    }
+                }
+                Task::none()
+            }
+
+            SettingsMessage::SetTestToneGain(new_gain) => {
+                self.test_tone_gain = new_gain;
+                if self.test_tone_playing {
+                    if let Err(_) = bytelabs_aios::set_test_tone_gain(new_gain) {
+                        log::error!("Failed to update test tone gain");
+                    }
+                }
+                Task::none()
+            }
+
             SettingsMessage::CategorySelected(category) => {
                 self.active_category = category;
                 Task::none()
@@ -104,10 +157,8 @@ impl Settings {
                 } else {
                     log::info!("Config autosave succeeded");
                     if let Ok(cfg_guard) = config.read() {
-                        let stored_theme = cfg_guard
-                            .interface
-                            .as_ref()
-                            .and_then(|i| i.theme.clone());
+                        let stored_theme =
+                            cfg_guard.interface.as_ref().and_then(|i| i.theme.clone());
                         log::info!("Stored theme after save: {:?}", stored_theme);
                     } else {
                         log::error!("Failed to acquire read lock to verify stored theme");
@@ -121,21 +172,35 @@ impl Settings {
 
     pub fn view(&self) -> Element<'_, SettingsMessage> {
         let sidebar = column![
-            sidebar_category_button("General", self.active_category == Category::General, Category::General),
-            sidebar_category_button("Behavior", self.active_category == Category::Behavior, Category::Behavior),
-            sidebar_category_button("Audio", self.active_category == Category::Audio, Category::Audio),
+            sidebar_category_button(
+                "General",
+                self.active_category == Category::General,
+                Category::General
+            ),
+            sidebar_category_button(
+                "Behavior",
+                self.active_category == Category::Behavior,
+                Category::Behavior
+            ),
+            sidebar_category_button(
+                "Audio",
+                self.active_category == Category::Audio,
+                Category::Audio
+            ),
         ]
         .spacing(4)
         .width(160);
 
         let content = match self.active_category {
-            Category::General => {
-                log::info!("Current theme in view: {:?}", self.theme);
-                pages::general::view(self.theme.clone())
-            }
+            Category::General => pages::general::view(self.theme.clone()),
 
-            Category::Audio => pages::audio::view(self.selected_driver.clone(), self.driver_options.clone()),
-
+            Category::Audio => pages::audio::view(
+                self.selected_driver.clone(),
+                self.driver_options.clone(),
+                self.test_tone_playing,
+                self.test_tone_freq,
+                self.test_tone_gain,
+            ),
             _ => pages::work_in_progress::view(),
         };
 
