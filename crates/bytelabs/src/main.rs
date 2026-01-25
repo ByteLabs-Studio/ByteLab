@@ -98,7 +98,7 @@ impl ByteLabs {
                 Task::none()
             }
             MainMessage::WindowClosed(id) if Some(id) == self.settings_window => {
-                bytelabs_aios::stop_test_tone();
+                _ = bytelabs_aios::stop_test_tone();
                 self.settings_window.take();
                 Task::none()
             }
