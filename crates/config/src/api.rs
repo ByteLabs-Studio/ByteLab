@@ -9,29 +9,27 @@ pub fn load(config: Option<String>) -> Result<Config, ConfigError> {
 
     info!("Checking config at: {}", path.display());
 
-    if !path.exists() {
+    if path.exists() {
+        Ok(
+            toml::from_str(&fs::read_to_string(&path).map_err(ConfigError::ReadError)?)
+                .map_err(|e| ConfigError::ParseError(e.to_string()))?,
+        )
+    } else {
         info!(
             "Config not found. Creating path and default config at: {}",
             path.display()
         );
 
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).map_err(ConfigError::ReadError)?;
-        }
+        let config = Config::default();
 
-        let default_config = Config::default();
+        fs::write(
+            &path,
+            toml::to_string_pretty(&config)
+                .map_err(|e| e.to_string())
+                .map_err(ConfigError::ParseError)?,
+        )
+        .map_err(ConfigError::ReadError)?;
 
-        let toml_string = toml::to_string_pretty(&default_config)
-            .map_err(|e| ConfigError::ParseError(e.to_string()))?;
-
-        fs::write(&path, toml_string).map_err(ConfigError::ReadError)?;
-
-        return Ok(default_config);
+        Ok(config)
     }
-
-    let content = fs::read_to_string(&path).map_err(ConfigError::ReadError)?;
-    let config: Config =
-        toml::from_str(&content).map_err(|e| ConfigError::ParseError(e.to_string()))?;
-
-    Ok(config)
 }

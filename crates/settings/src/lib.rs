@@ -43,8 +43,15 @@ pub enum SettingsMessage {
     ThemeSelected(Theme),
 }
 
+impl Default for Settings {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Settings {
-    pub fn new(config: Arc<RwLock<Config>>) -> Self {
+    pub fn new() -> Self {
+        let config = bytelabs_config::Config::global();
         let theme = config
             .read()
             .ok()

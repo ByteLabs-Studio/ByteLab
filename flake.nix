@@ -59,6 +59,7 @@
             ]
             ++ lib.optionals stdenv.isLinux [
               alsa-lib
+              jack2
             ];
 
           runtimeLibs =

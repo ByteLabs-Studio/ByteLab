@@ -30,23 +30,15 @@ impl Config {
         let path = path::config_path();
         log::info!("Saving config to: {}", path.display());
 
-        let toml_string = {
+        std::fs::write(&path, {
             let cfg = Self::global();
             let guard = cfg
                 .read()
                 .map_err(|_| ConfigError::ParseError("Lock poisoned".into()))?;
             toml::to_string_pretty(&*guard).map_err(|e| ConfigError::ParseError(e.to_string()))?
-        };
-
-        match std::fs::write(&path, toml_string) {
-            Ok(_) => {
-                log::info!("Config saved successfully to: {}", path.display());
-                Ok(())
-            }
-            Err(e) => {
-                log::error!("Failed to save config to {}: {:?}", path.display(), e);
-                Err(ConfigError::ReadError(e))
-            }
-        }
+        })
+        .inspect(|_| log::info!("Config saved successfully to: {}", path.display()))
+        .inspect_err(|e| log::error!("Failed to save config to {}: {e:?}", path.display()))
+        .map_err(ConfigError::ReadError)
     }
 }

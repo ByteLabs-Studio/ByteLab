@@ -61,10 +61,6 @@ pub fn get_available_drivers() -> Vec<AudioDrivers> {
 pub const MAX_TEST_TONE_FREQ: f32 = 10_000.0;
 pub const MAX_TEST_TONE_GAIN: f32 = 0.50;
 
-pub fn stop_test_tone_on_settings_window_close() {
-    let _ = stop_test_tone();
-}
-
 struct AudioState {
     stream: Mutex<Option<cpal::Stream>>,
     freq_bits: Arc<AtomicU32>,

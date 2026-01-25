@@ -1,5 +1,6 @@
+#![feature(if_let_guard)]
 use {
-    bytelabs_config::Config,
+    bytelabs_config::{Config, error::ConfigError},
     bytelabs_settings::{Settings, SettingsMessage},
     iced::{
         Center, Element, Length, Task, Theme, keyboard,
@@ -7,34 +8,25 @@ use {
         window,
     },
     log::info,
-    std::sync::{Arc, RwLock},
 };
 
-fn main() -> iced::Result {
-    env_logger::init();
-
-    if let Err(e) = Config::init_global(None) {
-        eprintln!("Failed to initialize config: {:?}", e);
-        std::process::exit(1);
-    }
-
-    iced::daemon(ByteLabs::new, ByteLabs::update, ByteLabs::view)
-        .subscription(ByteLabs::subscription)
-        .title("ByteLabs")
-        .theme(ByteLabs::theme)
-        .run()
-}
-
+#[derive(Default)]
 struct ByteLabs {
     page: Page,
-    config: Arc<RwLock<Config>>,
     settings_state: Settings,
     main_window: Option<window::Id>,
     settings_window: Option<window::Id>,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Debug)]
+enum Error {
+    ConfigurationError(ConfigError),
+    GraphicsError(iced::Error),
+}
+
+#[derive(Clone, PartialEq, Debug, Default)]
 enum Page {
+    #[default]
     Dashboard,
     Project(String),
 }
@@ -52,27 +44,16 @@ enum MainMessage {
 
 impl ByteLabs {
     fn new() -> (Self, Task<MainMessage>) {
-        let config = Config::global();
-
-        let (id, task) = window::open(window::Settings {
+        let (_, task) = window::open(window::Settings {
             size: iced::Size::new(800.0, 600.0),
             ..Default::default()
         });
 
-        (
-            Self {
-                page: Page::Dashboard,
-                settings_state: Settings::new(config.clone()),
-                config,
-                main_window: Some(id),
-                settings_window: None,
-            },
-            task.map(MainMessage::MainWindowOpened),
-        )
+        (Self::default(), task.map(MainMessage::MainWindowOpened))
     }
 
     fn theme(&self, _window: window::Id) -> Theme {
-        self.config
+        Config::global()
             .read()
             .ok()
             .and_then(|cfg| cfg.interface.as_ref()?.theme.clone())
@@ -92,78 +73,55 @@ impl ByteLabs {
                 self.main_window = Some(id);
                 Task::none()
             }
-
-            MainMessage::EventOccurred(event) => {
-                if let keyboard::Event::KeyPressed { key, modifiers, .. } = event {
-                    if key == keyboard::Key::Character(",".into())
-                        && modifiers == keyboard::Modifiers::COMMAND
-                    {
-                        return Task::done(MainMessage::OpenSettings);
-                    }
-
-                    if key == keyboard::Key::Named(keyboard::key::Named::Escape) {
-                        if let Some(id) = self.settings_window {
-                            return window::close(id);
-                        }
-                    }
-                }
-                Task::none()
+            MainMessage::EventOccurred(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Character(c),
+                modifiers: keyboard::Modifiers::COMMAND,
+                ..
+            }) if c == "," => Task::done(MainMessage::OpenSettings),
+            MainMessage::EventOccurred(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            }) if let Some(id) = self.settings_window => window::close(id),
+            MainMessage::EventOccurred(_) => Task::none(),
+            MainMessage::OpenSettings if self.settings_window.is_none() => {
+                window::open(window::Settings {
+                    size: iced::Size::new(1000.0, 600.0),
+                    resizable: false,
+                    ..Default::default()
+                })
+                .1
+                .map(MainMessage::SettingsWindowOpened)
             }
-
-            MainMessage::OpenSettings => {
-                if self.settings_window.is_none() {
-                    let (id, task) = window::open(window::Settings {
-                        size: iced::Size::new(1000.0, 600.0),
-                        resizable: false,
-                        ..Default::default()
-                    });
-
-                    self.settings_window = Some(id);
-                    return task.map(MainMessage::SettingsWindowOpened);
-                }
-                Task::none()
-            }
-
+            MainMessage::OpenSettings => Task::none(),
             MainMessage::SettingsWindowOpened(id) => {
                 self.settings_window = Some(id);
                 Task::none()
             }
-
-            MainMessage::WindowClosed(id) => {
-                if Some(id) == self.settings_window {
-                    // Ensure the test tone is stopped immediately when the settings window closes.
-                    // Best-effort call; ignore the Result.
-                    let _ = bytelabs_aios::stop_test_tone_on_settings_window_close();
-                    self.settings_window = None;
-                } else if Some(id) == self.main_window {
-                    return iced::exit();
-                }
+            MainMessage::WindowClosed(id) if Some(id) == self.settings_window => {
+                bytelabs_aios::stop_test_tone();
+                self.settings_window.take();
                 Task::none()
             }
-
-            MainMessage::OpenPage(p) => {
-                if self.page != p {
-                    info!("Opening {p:#?}");
-                    self.page = p;
-                }
+            MainMessage::WindowClosed(id) if Some(id) == self.main_window => return iced::exit(),
+            MainMessage::OpenPage(p) if self.page != p => {
+                info!("Opening {p:#?}");
+                self.page = p;
                 Task::none()
             }
-
+            MainMessage::OpenPage(_) => Task::none(),
             MainMessage::Settings(settings_msg) => {
                 log::info!("Received settings message: {:?}", settings_msg);
                 self.settings_state
-                    .update(settings_msg, self.config.clone())
+                    .update(settings_msg, Config::global())
                     .map(MainMessage::Settings)
             }
+            MainMessage::WindowClosed(_) => Task::none(),
         }
     }
 
     fn view(&self, window_id: window::Id) -> Element<'_, MainMessage> {
         if Some(window_id) == self.settings_window {
-            return self
-                .settings_state
-                .view()
-                .map(MainMessage::Settings);
+            return self.settings_state.view().map(MainMessage::Settings);
         }
 
         let content = match &self.page {
@@ -187,4 +145,16 @@ impl ByteLabs {
             .align_x(Center)
             .into()
     }
+}
+
+fn main() -> Result<(), Error> {
+    env_logger::init();
+
+    Config::init_global(None).map_err(Error::ConfigurationError)?;
+    iced::daemon(ByteLabs::new, ByteLabs::update, ByteLabs::view)
+        .subscription(ByteLabs::subscription)
+        .title("ByteLabs")
+        .theme(ByteLabs::theme)
+        .run()
+        .map_err(Error::GraphicsError)
 }
