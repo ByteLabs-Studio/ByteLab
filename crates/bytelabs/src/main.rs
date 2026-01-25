@@ -115,8 +115,7 @@ impl ByteLabs {
                 if self.settings_window.is_none() {
                     let (id, task) = window::open(window::Settings {
                         size: iced::Size::new(1000.0, 600.0),
-                        min_size: Some(iced::Size::new(1000.0, 600.0)),
-                        max_size: Some(iced::Size::new(1000.0, 600.0)),
+                        resizable: false,
                         ..Default::default()
                     });
 
