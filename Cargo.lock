@@ -406,6 +406,7 @@ dependencies = [
  "chrono",
  "iced",
  "json",
+ "log",
  "tokio",
  "toml",
 ]

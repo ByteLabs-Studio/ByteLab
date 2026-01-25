@@ -28,6 +28,8 @@ impl Config {
 
     pub fn save_global() -> Result<(), ConfigError> {
         let path = path::config_path();
+        log::info!("Saving config to: {}", path.display());
+
         let toml_string = {
             let cfg = Self::global();
             let guard = cfg
@@ -36,6 +38,15 @@ impl Config {
             toml::to_string_pretty(&*guard).map_err(|e| ConfigError::ParseError(e.to_string()))?
         };
 
-        std::fs::write(path, toml_string).map_err(ConfigError::ReadError)
+        match std::fs::write(&path, toml_string) {
+            Ok(_) => {
+                log::info!("Config saved successfully to: {}", path.display());
+                Ok(())
+            }
+            Err(e) => {
+                log::error!("Failed to save config to {}: {:?}", path.display(), e);
+                Err(ConfigError::ReadError(e))
+            }
+        }
     }
 }

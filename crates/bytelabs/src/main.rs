@@ -62,7 +62,7 @@ impl ByteLabs {
         (
             Self {
                 page: Page::Dashboard,
-                settings_state: Settings::new(),
+                settings_state: Settings::new(config.clone()),
                 config,
                 main_window: Some(id),
                 settings_window: None,
@@ -147,23 +147,9 @@ impl ByteLabs {
             }
 
             MainMessage::Settings(settings_msg) => {
-                match &settings_msg {
-                    SettingsMessage::ThemeSelected(new_theme) => {
-                        if let Ok(mut cfg) = self.config.write() {
-                            if let Some(interface) = &mut cfg.interface {
-                                interface.theme = Some(new_theme.clone());
-                            }
-                        }
-
-                        if let Err(e) = Config::save_global() {
-                            log::error!("Failed to autosave config: {:?}", e);
-                        }
-                    }
-                    _ => {}
-                }
-
+                log::info!("Received settings message: {:?}", settings_msg);
                 self.settings_state
-                    .update(settings_msg)
+                    .update(settings_msg, self.config.clone())
                     .map(MainMessage::Settings)
             }
         }
@@ -173,7 +159,7 @@ impl ByteLabs {
         if Some(window_id) == self.settings_window {
             return self
                 .settings_state
-                .view(self.config.clone())
+                .view()
                 .map(MainMessage::Settings);
         }
 
