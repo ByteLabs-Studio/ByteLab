@@ -195,8 +195,8 @@ impl Settings {
                 Category::Audio
             ),
         ]
-        .spacing(4)
-        .width(160);
+        .spacing(5)
+        .width(200);
 
         let content = match self.active_category {
             Category::General => pages::general::view(self.theme.clone()),
