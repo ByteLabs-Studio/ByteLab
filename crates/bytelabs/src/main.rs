@@ -19,7 +19,7 @@ struct ByteLabs {
 }
 
 #[derive(Debug)]
-enum Error {
+pub enum Error {
     ConfigurationError(ConfigError),
     GraphicsError(iced::Error),
 }
