@@ -63,7 +63,7 @@ impl Settings {
             .unwrap_or(Theme::Light);
 
         let selected_driver: Option<String> = Some(
-            bytelabs_aios::get_available_drivers()
+            bytelabs_aios::cpal::available_hosts()
                 .iter()
                 .cloned()
                 .nth(0)
@@ -72,7 +72,7 @@ impl Settings {
                 .to_string(),
         );
 
-        let drivers = bytelabs_aios::get_available_drivers();
+        let drivers = bytelabs_aios::cpal::available_hosts();
         let driver_options: Vec<String> = drivers.iter().map(|d| d.to_string()).collect();
         let devices: Vec<Device> = get_audio_devices(drivers[1]).map(|d| d).collect();
 

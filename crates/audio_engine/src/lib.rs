@@ -8,10 +8,6 @@ use {
     std::sync::{Arc, Mutex, OnceLock},
 };
 
-pub fn get_available_drivers() -> Vec<HostId> {
-    cpal::available_hosts()
-}
-
 pub fn get_audio_devices(_host: HostId) -> Devices {
     cpal::default_host().devices().ok().unwrap()
 }
