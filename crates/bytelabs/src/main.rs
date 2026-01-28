@@ -84,13 +84,16 @@ impl ByteLabs {
             }) if let Some(id) = self.settings_window => window::close(id),
             MainMessage::EventOccurred(_) => Task::none(),
             MainMessage::OpenSettings if self.settings_window.is_none() => {
-                window::open(window::Settings {
+                let (id, tid) = window::open(window::Settings {
                     size: iced::Size::new(1000.0, 600.0),
                     resizable: false,
                     ..Default::default()
-                })
-                .1
-                .map(MainMessage::SettingsWindowOpened)
+                });
+
+                if cfg!(target_os = "macos") {
+                    self.settings_window = Some(id);
+                }
+                tid.map(MainMessage::SettingsWindowOpened)
             }
             MainMessage::OpenSettings => Task::none(),
             MainMessage::SettingsWindowOpened(id) => {
