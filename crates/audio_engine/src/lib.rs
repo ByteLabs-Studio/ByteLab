@@ -1,61 +1,19 @@
+pub extern crate cpal;
 use cpal::{
-    FromSample, I24, Sample, SizedSample,
+    Devices, FromSample, HostId, I24, Sample, SizedSample,
     traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AudioDrivers {
-    JACK,
-    ASIO,
-    ALSA,
-    CoreAudio,
-    WASAPI,
-    PipeWire,
+pub fn get_available_drivers() -> Vec<HostId> {
+    cpal::available_hosts()
 }
 
-impl std::fmt::Display for AudioDrivers {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let label = match self {
-            AudioDrivers::JACK => "JACK",
-            AudioDrivers::ASIO => "ASIO",
-            AudioDrivers::ALSA => "ALSA",
-            AudioDrivers::CoreAudio => "Core Audio",
-            AudioDrivers::WASAPI => "WASAPI",
-            AudioDrivers::PipeWire => "PipeWire",
-        };
-        write!(f, "{label}")
-    }
-}
+pub fn get_audio_devices(_host: HostId) -> Devices {
+    let devices = cpal::default_host().devices().ok().unwrap();
 
-impl AudioDrivers {
-    pub fn label(&self) -> &'static str {
-        match self {
-            AudioDrivers::JACK => "JACK",
-            AudioDrivers::ASIO => "ASIO",
-            AudioDrivers::ALSA => "ALSA",
-            AudioDrivers::CoreAudio => "Core Audio",
-            AudioDrivers::WASAPI => "WASAPI",
-            AudioDrivers::PipeWire => "PipeWire",
-        }
-    }
-}
-
-pub fn get_available_drivers() -> Vec<AudioDrivers> {
-    if cfg!(target_os = "macos") {
-        vec![AudioDrivers::CoreAudio, AudioDrivers::JACK]
-    } else if cfg!(target_os = "windows") {
-        vec![AudioDrivers::WASAPI, AudioDrivers::ASIO, AudioDrivers::JACK]
-    } else if cfg!(target_os = "linux") {
-        vec![
-            AudioDrivers::ALSA,
-            AudioDrivers::PipeWire,
-            AudioDrivers::JACK,
-        ]
-    } else {
-        vec![AudioDrivers::JACK]
-    }
+    devices
 }
 
 pub const MAX_TEST_TONE_FREQ: f32 = 10_000.0;

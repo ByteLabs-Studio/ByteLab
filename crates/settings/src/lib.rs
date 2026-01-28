@@ -2,12 +2,16 @@ pub mod pages;
 mod sidebar_button;
 
 use {
+    bytelabs_aios::{
+        cpal::{Device, traits::DeviceTrait},
+        get_audio_devices,
+    },
     bytelabs_config::Config,
     iced::{
         Element, Length, Task, Theme,
         widget::{column, container, row},
     },
-    log,
+    log::{self, info},
     std::sync::{Arc, RwLock},
 };
 
@@ -63,15 +67,18 @@ impl Settings {
                 .iter()
                 .cloned()
                 .nth(0)
-                .map(|d| d.label())
-                .unwrap_or("No driver")
-                .into(),
+                .map(|d| d)
+                .unwrap()
+                .to_string(),
         );
 
-        let driver_options: Vec<String> = bytelabs_aios::get_available_drivers()
-            .iter()
-            .map(|d| d.to_string())
-            .collect();
+        let drivers = bytelabs_aios::get_available_drivers();
+        let driver_options: Vec<String> = drivers.iter().map(|d| d.to_string()).collect();
+        let devices: Vec<Device> = get_audio_devices(drivers[1]).map(|d| d).collect();
+
+        for d in devices {
+            info!("Found device: {}", d.id().ok().unwrap().1);
+        }
 
         Self {
             active_category: Category::General,
