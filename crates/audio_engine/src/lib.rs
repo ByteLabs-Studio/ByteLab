@@ -1,19 +1,19 @@
 pub extern crate cpal;
-use cpal::{
-    Devices, FromSample, HostId, I24, Sample, SizedSample,
-    traits::{DeviceTrait, HostTrait, StreamTrait},
+use {
+    cpal::{
+        Devices, FromSample, HostId, Sample, SampleFormat, SizedSample,
+        traits::{DeviceTrait, HostTrait, StreamTrait},
+    },
+    std::sync::atomic::{AtomicBool, AtomicU32, Ordering},
+    std::sync::{Arc, Mutex, OnceLock},
 };
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
 
 pub fn get_available_drivers() -> Vec<HostId> {
     cpal::available_hosts()
 }
 
 pub fn get_audio_devices(_host: HostId) -> Devices {
-    let devices = cpal::default_host().devices().ok().unwrap();
-
-    devices
+    cpal::default_host().devices().ok().unwrap()
 }
 
 pub const MAX_TEST_TONE_FREQ: f32 = 10_000.0;
@@ -60,50 +60,13 @@ pub fn start_test_tone(freq_hz: f32) -> Result<(), ()> {
 
     let sample_format = supported_config.sample_format();
     let stream_config: cpal::StreamConfig = supported_config.into();
-
     let freq_arc = state.freq_bits.clone();
+    let stream = (get_stream_builder(sample_format)?)(&device, &stream_config, freq_arc)?;
 
-    let stream_res = match sample_format {
-        cpal::SampleFormat::I8 => {
-            build_continuous_stream::<i8>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::I16 => {
-            build_continuous_stream::<i16>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::I24 => {
-            build_continuous_stream::<I24>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::I32 => {
-            build_continuous_stream::<i32>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::I64 => {
-            build_continuous_stream::<i64>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::U8 => {
-            build_continuous_stream::<u8>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::U16 => {
-            build_continuous_stream::<u16>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::U32 => {
-            build_continuous_stream::<u32>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::U64 => {
-            build_continuous_stream::<u64>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::F32 => {
-            build_continuous_stream::<f32>(&device, &stream_config, freq_arc.clone())
-        }
-        cpal::SampleFormat::F64 => {
-            build_continuous_stream::<f64>(&device, &stream_config, freq_arc.clone())
-        }
-        _ => Err(()),
-    };
+    stream.play().map_err(std::mem::drop)?;
 
-    let stream = stream_res?;
-    stream.play().map_err(|_| ())?;
     if let Ok(mut guard) = state.stream.lock() {
-        *guard = Some(stream);
+        guard.replace(stream);
     }
 
     state.playing.store(true, Ordering::SeqCst);
@@ -115,9 +78,7 @@ pub fn stop_test_tone() -> Result<(), ()> {
     state.playing.store(false, Ordering::SeqCst);
 
     if let Ok(mut guard) = state.stream.lock() {
-        if guard.is_some() {
-            *guard = None;
-        }
+        _ = guard.take();
     }
 
     Ok(())
@@ -140,7 +101,7 @@ pub fn set_test_tone_gain(gain: f32) -> Result<(), ()> {
 pub fn woohoo_test_tone() -> Result<(), ()> {
     start_test_tone(440.0f32)?;
     std::thread::sleep(std::time::Duration::from_millis(1000));
-    let _ = stop_test_tone();
+    _ = stop_test_tone();
     Ok(())
 }
 
@@ -168,20 +129,44 @@ where
         use std::f32::consts::PI;
         for frame in data.chunks_mut(channels) {
             let target_freq = f32::from_bits(freq_arc.load(Ordering::Relaxed));
+
             smoothed_freq += (target_freq - smoothed_freq) * alpha;
+
             let gain = f32::from_bits(gain_arc.load(Ordering::Relaxed));
             let phase_inc = 2.0 * PI * smoothed_freq / sample_rate;
+
             phase = (phase + phase_inc) % (2.0 * PI);
+
             let value: T = T::from_sample(phase.sin() * gain);
-            for sample in frame.iter_mut() {
-                *sample = value;
-            }
+
+            frame.iter_mut().for_each(|sample| *sample = value);
         }
     };
 
-    let stream = device
+    device
         .build_output_stream(config, callback, err_fn, None)
-        .map_err(|_| ())?;
+        .map_err(|_| ())
+}
 
-    Ok(stream)
+fn get_stream_builder(
+    sample_format: SampleFormat,
+) -> Result<
+    impl Fn(&cpal::Device, &cpal::StreamConfig, Arc<AtomicU32>) -> Result<cpal::Stream, ()>,
+    (),
+> {
+    use SampleFormat::*;
+    Ok(match sample_format {
+        I8 => build_continuous_stream::<i8>,
+        I16 => build_continuous_stream::<i16>,
+        I24 => build_continuous_stream::<cpal::I24>,
+        I32 => build_continuous_stream::<i32>,
+        I64 => build_continuous_stream::<i64>,
+        U8 => build_continuous_stream::<u8>,
+        U16 => build_continuous_stream::<u16>,
+        U32 => build_continuous_stream::<u32>,
+        U64 => build_continuous_stream::<u64>,
+        F32 => build_continuous_stream::<f32>,
+        F64 => build_continuous_stream::<f64>,
+        _ => return Err(()),
+    })
 }
