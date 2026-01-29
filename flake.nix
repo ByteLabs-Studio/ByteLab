@@ -18,9 +18,13 @@
     let
       overlays = {
         default = final: prev: {
-          bytelab = (final.callPackage naersk { }).buildPackage {
+          bytelab = (final.callPackage naersk {
+            cargo = final.rust-bin.nightly.latest.default;
+            rustc = final.rust-bin.nightly.latest.default;
+          }).buildPackage {
             pname = "bytelabs";
             src = ./.;
+            buildInputs = with final; [ pkg-config jack2 alsa-lib ];
           };
         };
       };

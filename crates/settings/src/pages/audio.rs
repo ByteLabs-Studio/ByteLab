@@ -6,6 +6,8 @@ use iced::{
 pub fn view(
     selected_driver: Option<String>,
     driver_options: Vec<String>,
+    selected_device: Option<String>,
+    device_options: Vec<String>,
     test_tone_playing: bool,
     test_tone_freq: f32,
     test_tone_gain: f32,
@@ -21,6 +23,16 @@ pub fn view(
                 driver_options,
                 selected_driver,
                 crate::SettingsMessage::DriverSelected
+            )
+            .width(200)
+        ],
+        row![
+            text("Output Device:"),
+            Space::new().width(Length::Fill),
+            pick_list(
+                device_options,
+                selected_device,
+                crate::SettingsMessage::DeviceSelected
             )
             .width(200)
         ],

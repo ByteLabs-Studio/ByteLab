@@ -1,16 +1,13 @@
 pub extern crate cpal;
 use {
+    bytelabs_config::Config,
     cpal::{
-        Devices, FromSample, HostId, Sample, SampleFormat, SizedSample,
+        FromSample, Sample, SampleFormat, SizedSample,
         traits::{DeviceTrait, HostTrait, StreamTrait},
     },
     std::sync::atomic::{AtomicBool, AtomicU32, Ordering},
     std::sync::{Arc, Mutex, OnceLock},
 };
-
-pub fn get_audio_devices(_host: HostId) -> Devices {
-    cpal::default_host().devices().ok().unwrap()
-}
 
 pub const MAX_TEST_TONE_FREQ: f32 = 10_000.0;
 pub const MAX_TEST_TONE_GAIN: f32 = 0.50;
@@ -43,11 +40,29 @@ pub fn start_test_tone(freq_hz: f32) -> Result<(), ()> {
 
     state.freq_bits.store(freq_hz.to_bits(), Ordering::SeqCst);
 
-    let host = cpal::default_host();
-    let device = match host.default_output_device() {
-        Some(d) => d,
-        None => return Err(()),
-    };
+    let config = Config::global();
+    let config_guard = config.read().unwrap();
+    let audio_config = config_guard.audio.as_ref();
+
+    let host = audio_config
+        .and_then(|a| a.driver.as_ref())
+        .and_then(|driver_name| {
+            cpal::available_hosts()
+                .into_iter()
+                .find(|id| id.to_string() == *driver_name)
+                .and_then(|id| cpal::host_from_id(id).ok())
+        })
+        .unwrap_or_else(cpal::default_host);
+
+    let device = audio_config
+        .and_then(|a| a.device.as_ref())
+        .and_then(|device_name| {
+            host.output_devices()
+                .ok()?
+                .find(|d| d.description().ok().unwrap().name() == device_name)
+        })
+        .or_else(|| host.default_output_device())
+        .ok_or(())?;
 
     let supported_config = match device.default_output_config() {
         Ok(c) => c,

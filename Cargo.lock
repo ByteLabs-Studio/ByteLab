@@ -449,6 +449,7 @@ dependencies = [
 name = "bytelabs_aios"
 version = "0.1.0"
 dependencies = [
+ "bytelabs_config",
  "cpal",
 ]
 

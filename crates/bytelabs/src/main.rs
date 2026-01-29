@@ -1,4 +1,4 @@
-#![feature(if_let_guard)]
+
 use {
     bytelabs_config::{Config, error::ConfigError},
     bytelabs_settings::{Settings, SettingsMessage},
@@ -81,7 +81,12 @@ impl ByteLabs {
             MainMessage::EventOccurred(keyboard::Event::KeyPressed {
                 key: keyboard::Key::Named(keyboard::key::Named::Escape),
                 ..
-            }) if let Some(id) = self.settings_window => window::close(id),
+            }) => {
+                if let Some(id) = self.settings_window {
+                    return window::close(id);
+                }
+                Task::none()
+            }
             MainMessage::EventOccurred(_) => Task::none(),
             MainMessage::OpenSettings if self.settings_window.is_none() => {
                 let (id, tid) = window::open(window::Settings {

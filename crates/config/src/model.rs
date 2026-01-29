@@ -4,16 +4,25 @@ use {
     std::ops::Deref,
 };
 
+
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct AudioOpts {
+    pub driver: Option<String>,
+    pub device: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     pub interface: Option<UserInterfaceOpts>,
     pub behavior: Option<UserBehaviorOpts>,
+    pub audio: Option<AudioOpts>,
 }
 impl Config {
     pub(crate) fn default() -> Config {
         Config {
             interface: None,
             behavior: None,
+            audio: None,
         }
     }
 }

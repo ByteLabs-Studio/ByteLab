@@ -1,5 +1,6 @@
 [dependencies]
 cpal.workspace = true
+bytelabs_config.workspace = true
 
 [package]
 name = "bytelabs_aios"

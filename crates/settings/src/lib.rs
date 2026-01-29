@@ -2,16 +2,13 @@ pub mod pages;
 mod sidebar_button;
 
 use {
-    bytelabs_aios::{
-        cpal::{Device, traits::DeviceTrait},
-        get_audio_devices,
-    },
+    bytelabs_aios::cpal::traits::{DeviceTrait, HostTrait},
     bytelabs_config::Config,
     iced::{
         Element, Length, Task, Theme,
         widget::{column, container, row},
     },
-    log::{self, info},
+    log::{error, info},
     std::sync::{Arc, RwLock},
 };
 
@@ -23,6 +20,8 @@ pub struct Settings {
     active_category: Category,
     selected_driver: Option<String>,
     driver_options: Vec<String>,
+    selected_device: Option<String>,
+    device_options: Vec<String>,
     theme: Theme,
     test_tone_playing: bool,
     test_tone_freq: f32,
@@ -44,6 +43,7 @@ pub enum SettingsMessage {
     SetTestToneGain(f32),
     CategorySelected(Category),
     DriverSelected(String),
+    DeviceSelected(String),
     ThemeSelected(Theme),
 }
 
@@ -56,34 +56,54 @@ impl Default for Settings {
 impl Settings {
     pub fn new() -> Self {
         let config = bytelabs_config::Config::global();
-        let theme = config
-            .read()
-            .ok()
-            .and_then(|cfg| cfg.interface.as_ref()?.theme.clone())
+        let config_guard = config.read().unwrap();
+
+        let theme = config_guard
+            .interface
+            .as_ref()
+            .and_then(|i| i.theme.clone())
             .unwrap_or(Theme::Light);
 
-        let selected_driver: Option<String> = Some(
-            bytelabs_aios::cpal::available_hosts()
-                .iter()
-                .cloned()
-                .nth(0)
-                .map(|d| d)
+        let audio_config = config_guard.audio.as_ref();
+
+        let driver_options: Vec<String> = bytelabs_aios::cpal::available_hosts()
+            .iter()
+            .map(|id| id.to_string())
+            .collect();
+
+        let selected_driver = audio_config
+            .and_then(|a| a.driver.clone())
+            .or_else(|| driver_options.first().cloned());
+
+        let (device_options, selected_device) = if let Some(driver_name) = &selected_driver {
+            let host_id = bytelabs_aios::cpal::available_hosts()
+                .into_iter()
+                .find(|id| id.to_string() == *driver_name)
+                .unwrap();
+
+            let host = bytelabs_aios::cpal::host_from_id(host_id).unwrap();
+
+            let device_options: Vec<String> = host
+                .output_devices()
                 .unwrap()
-                .to_string(),
-        );
+                .filter_map(|d| Some(d.description().unwrap().name().into()))
+                .collect();
 
-        let drivers = bytelabs_aios::cpal::available_hosts();
-        let driver_options: Vec<String> = drivers.iter().map(|d| d.to_string()).collect();
-        let devices: Vec<Device> = get_audio_devices(drivers[1]).map(|d| d).collect();
-
-        for d in devices {
-            info!("Found device: {}", d.id().ok().unwrap().1);
-        }
+            let selected_device = audio_config.and_then(|a| a.device.clone()).or_else(|| {
+                host.default_output_device()
+                    .and_then(|d| Some(d.description().unwrap().name().into()))
+            });
+            (device_options, selected_device)
+        } else {
+            (Vec::new(), None)
+        };
 
         Self {
             active_category: Category::General,
             selected_driver,
             driver_options,
+            selected_device,
+            device_options,
             theme,
             test_tone_playing: false,
             test_tone_freq: 440.0,
@@ -104,7 +124,7 @@ impl Settings {
                             self.test_tone_playing = true;
                         }
                         Err(_) => {
-                            log::error!("Failed to start test tone");
+                            error!("Failed to start test tone");
                         }
                     }
                 } else {
@@ -113,7 +133,7 @@ impl Settings {
                             self.test_tone_playing = false;
                         }
                         Err(_) => {
-                            log::error!("Failed to stop test tone");
+                            error!("Failed to stop test tone");
                         }
                     }
                 }
@@ -124,7 +144,7 @@ impl Settings {
                 self.test_tone_freq = new_freq;
                 if self.test_tone_playing {
                     if let Err(_) = bytelabs_aios::set_test_tone_frequency(new_freq) {
-                        log::error!("Failed to update test tone frequency");
+                        error!("Failed to update test tone frequency");
                     }
                 }
                 Task::none()
@@ -134,7 +154,7 @@ impl Settings {
                 self.test_tone_gain = new_gain;
                 if self.test_tone_playing {
                     if let Err(_) = bytelabs_aios::set_test_tone_gain(new_gain) {
-                        log::error!("Failed to update test tone gain");
+                        error!("Failed to update test tone gain");
                     }
                 }
                 Task::none()
@@ -145,13 +165,50 @@ impl Settings {
                 Task::none()
             }
 
-            SettingsMessage::DriverSelected(driver) => {
-                self.selected_driver = Some(driver);
+            SettingsMessage::DriverSelected(driver_name) => {
+                self.selected_driver = Some(driver_name.clone());
+
+                let host_id = bytelabs_aios::cpal::available_hosts()
+                    .into_iter()
+                    .find(|id| id.to_string() == driver_name)
+                    .unwrap();
+                let host = bytelabs_aios::cpal::host_from_id(host_id).unwrap();
+
+                self.device_options = host
+                    .output_devices()
+                    .unwrap()
+                    .filter_map(|d| Some(d.description().unwrap().name().into()))
+                    .collect();
+                self.selected_device = host
+                    .default_output_device()
+                    .and_then(|d| Some(d.description().unwrap().name().into()));
+
+                if let Ok(mut config) = config.write() {
+                    let audio = config.audio.get_or_insert_with(Default::default);
+                    audio.driver = Some(driver_name);
+                    audio.device = self.selected_device.clone();
+                }
+
+                if let Err(e) = Config::save_global() {
+                    error!("Failed to autosave config: {:?}", e);
+                }
+
+                Task::none()
+            }
+
+            SettingsMessage::DeviceSelected(device_name) => {
+                self.selected_device = Some(device_name.clone());
+                if let Ok(mut config) = config.write() {
+                    config.audio.get_or_insert_with(Default::default).device = Some(device_name);
+                }
+                if let Err(e) = Config::save_global() {
+                    error!("Failed to autosave config: {:?}", e);
+                }
                 Task::none()
             }
 
             SettingsMessage::ThemeSelected(new_theme) => {
-                log::info!("Updating theme to: {:?}", new_theme);
+                info!("Updating theme to: {:?}", new_theme);
 
                 self.theme = new_theme.clone();
 
@@ -159,23 +216,23 @@ impl Settings {
                     Ok(mut cfg) => {
                         let interface = cfg.interface.get_or_insert_with(Default::default);
                         interface.theme = Some(new_theme.clone());
-                        log::info!("Wrote theme to config in-memory: {:?}", interface.theme);
+                        info!("Wrote theme to config in-memory: {:?}", interface.theme);
                     }
                     Err(e) => {
-                        log::error!("Failed to acquire write lock on config: {:?}", e);
+                        error!("Failed to acquire write lock on config: {:?}", e);
                     }
                 }
 
                 if let Err(e) = Config::save_global() {
-                    log::error!("Failed to autosave config: {:?}", e);
+                    error!("Failed to autosave config: {:?}", e);
                 } else {
-                    log::info!("Config autosave succeeded");
+                    info!("Config autosave succeeded");
                     if let Ok(cfg_guard) = config.read() {
                         let stored_theme =
                             cfg_guard.interface.as_ref().and_then(|i| i.theme.clone());
-                        log::info!("Stored theme after save: {:?}", stored_theme);
+                        info!("Stored theme after save: {:?}", stored_theme);
                     } else {
-                        log::error!("Failed to acquire read lock to verify stored theme");
+                        error!("Failed to acquire read lock to verify stored theme");
                     }
                 }
 
@@ -211,6 +268,8 @@ impl Settings {
             Category::Audio => pages::audio::view(
                 self.selected_driver.clone(),
                 self.driver_options.clone(),
+                self.selected_device.clone(),
+                self.device_options.clone(),
                 self.test_tone_playing,
                 self.test_tone_freq,
                 self.test_tone_gain,
