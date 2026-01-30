@@ -1,4 +1,3 @@
-
 use {
     bytelabs_config::{Config, error::ConfigError},
     bytelabs_settings::{Settings, SettingsMessage},
@@ -45,7 +44,6 @@ enum MainMessage {
 impl ByteLabs {
     fn new() -> (Self, Task<MainMessage>) {
         let (_, task) = window::open(window::Settings {
-            size: iced::Size::new(800.0, 600.0),
             ..Default::default()
         });
 
